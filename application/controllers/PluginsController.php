@@ -31,6 +31,18 @@ class PluginsController extends LSYii_Controller
     }
 
     /**
+     * Sets the action as a plugin property.
+     * This is done to avoid collision with the magic getter, when doing 
+     *      Yii::app()->controller->action->id.
+     * So after this, when invoked, it will return the action, stored as a property.
+     */
+    public function beforeAction($action)
+    {
+        $this->__set('action', $action);
+        return true;
+    }
+    
+    /**
      * Activates plugin with $id
      *
      * @param int $id
