@@ -1,53 +1,121 @@
-<div class='menubar'>
-    <div class='menubar-title ui-widget-header'>
-        <strong><?php $clang->eT("Label set administration"); ?></strong>
-    </div>
-    <div class='menubar-main'>
-        <div class='menubar-left'>
-            <a href='<?php echo $this->createUrl("/admin/index"); ?>'>
-                <img src='<?php echo $sImageURL; ?>home.png' alt='<?php $clang->eT("Return to survey administration"); ?>' /></a>
-            <img src='<?php echo $sImageURL; ?>blank.gif' width='11' height='20' alt='' />
-            <img src='<?php echo $sImageURL; ?>separator.gif' alt='' />
-            <img src='<?php echo $sImageURL; ?>blank.gif' width='76' height='20' alt='' />
-            <img src='<?php echo $sImageURL; ?>separator.gif' alt='' />
-            <a href='<?php echo $this->createUrl("admin/labels/sa/exportmulti");?>'>
-                <img src='<?php echo $sImageURL; ?>dumplabelmulti.png' alt='<?php $clang->eT("Export multiple label sets"); ?>' /></a>
-        </div>
-        <div class='menubar-right'>
-            <img src='<?php echo $sImageURL; ?>blank.gif' width='5' height='20' alt='' />
-            <label for='labelsetchanger'><?php $clang->eT("Label sets:");?> </label>
-            <select id='labelsetchanger' onchange="window.open(this.options[this.selectedIndex].value,'_top')">
-                <option value=''
-                    <?php if (!isset($lid) || $lid<1) { ?> selected='selected' <?php } ?>
-                    ><?php $clang->eT("Please choose..."); ?></option>
-
-                <?php if (count($labelsets)>0)
-                    {
-                        foreach ($labelsets as $lb)
-                        { ?>
-                        <option data-labelset-id='<?php echo $lb[0]; ?>' value='<?php echo $this->createUrl("admin/labels/sa/view/lid/".$lb[0]); ?>'
-                            <?php if ($lb[0] == $lid) { ?> selected='selected' <?php } ?>
-                            ><?php echo htmlspecialchars($lb[1],ENT_QUOTES); ?></option>
-                        <?php }
-                } ?>
-
-            </select>
-            <a href="#" onclick="window.open('<?php echo $this->createUrl("admin/labels/sa/newlabelset") ?>', '_top')">
-                <img src='<?php echo $sImageURL; ?>add.png' alt='<?php $clang->eT("Create or import new label set(s)"); ?>' /></a>
-            <img src='<?php echo $sImageURL; ?>separator.gif'  alt='' />
-            <img src='<?php echo $sImageURL; ?>blank.gif' width='5' height='20' alt='' />
-
-            <a href="#" onclick="window.open('<?php echo $this->createUrl("admin/authentication/sa/logout");?>', '_top')">
-                <img src='<?php echo $sImageURL; ?>logout.png' alt='<?php $clang->eT("Logout"); ?>' /></a>
-
-            <a href="http://manual.limesurvey.org" target='_blank'>
-                <img src='<?php echo $sImageURL; ?>showhelp.png' alt='<?php $clang->eT("Show help"); ?>' /></a>
-        </div>
-    </div>
-</div>
 <script type="text/javascript">
-    var sImageURL = '<?php echo $sImageURL ?>';
+    var sImageURL = ''; // in 2.06, used to display the icon in jQgrid, not necessary anymore
     var duplicatelabelcode='<?php eT('Error: You are trying to use duplicate label codes.','js'); ?>';
     var otherisreserved='<?php eT("Error: 'other' is a reserved keyword.",'js'); ?>';
     var quickaddtitle='<?php eT('Quick-add subquestion or answer items','js'); ?>';
 </script>
+
+<!-- Label Bar menu -->
+<div class='menubar' id="labelbar">
+    <div class='row container-fluid'>
+
+        <div class="col-lg-6">
+
+            <!-- View buttons -->
+            <?php if (isset($labelbar['buttons']['view'])):?>
+                <?php if (Permission::model()->hasGlobalPermission('labelsets','create') || Permission::model()->hasGlobalPermission('labelsets','import')):?>
+                    <!-- Add -->
+                    <a class="btn btn-default" href="<?php echo $this->createUrl("admin/labels/sa/newlabelset");?>" role="button">
+                        <span class="icon-add text-success"></span>
+                        <?php eT("Create or import new label set(s)"); ?>
+                    </a>
+                    <?php endif; ?>
+                <!-- Export Multiple -->
+                <?php if ( count($labelsets) > 0 ): ?>
+                    <?php if (Permission::model()->hasGlobalPermission('labelsets','export')):?>
+                        <a class="btn btn-default" href="<?php echo $this->createUrl("admin/labels/sa/exportmulti");?>" role="button">
+                            <span class="icon-export text-success"></span>
+                            <?php eT("Export multiple label sets"); ?>
+                        </a>
+                        <?php endif; ?>
+                    <?php else:?>
+                    <?php if (Permission::model()->hasGlobalPermission('labelsets','export')):?>
+                        <span title="<?php eT("No label sets available"); ?>" data-toggle="tooltip" data-placement="bottom" style="display: inline-block">
+                            <a class="btn btn-default disabled" role="button" >
+                                <span class="icon-export text-success"></span>
+                                <?php eT("Export multiple label sets"); ?>
+                            </a>
+                        </span>
+                        <?php endif; ?>
+                <?php endif; ?>
+                <?php endif; ?>
+
+
+            <!-- Edition buttons -->
+
+            <?php if (isset($labelbar['buttons']['edition'])):?>
+
+                <?php if (isset($labelbar['buttons']['edit'])): ?>
+                    <!-- Edit label set -->
+                    <?php if (Permission::model()->hasGlobalPermission('labelsets','update')):?>
+                        <a class="btn btn-default" href="<?php echo $this->createUrl("admin/labels/sa/editlabelset/lid/".$lid);?>" role="button">
+                            <span class="fa fa-pencil  text-success"></span>
+                            <?php eT("Edit label set"); ?>
+                        </a>
+                        <?php endif; ?>
+
+
+                    <!-- Export this label set -->
+                    <?php if (Permission::model()->hasGlobalPermission('labelsets','export')):?>
+                        <a class="btn btn-default" href="<?php echo $this->createUrl("admin/export/sa/dumplabel/lid/$lid");?>" role="button">
+                            <span class="icon-export text-success"></span>
+                            <?php eT("Export this label set"); ?>
+                        </a>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+
+                <!-- Delete label set -->
+                <?php if (isset($labelbar['buttons']['delete']) && $labelbar['buttons']['delete'] == true ): ?>
+                    <?php if (Permission::model()->hasGlobalPermission('labelsets','delete')): ?>
+                        <button class="btn btn-default"
+                           data-toggle="modal"
+                           data-target="#confirmation-modal"
+                           data-onclick='(function() { <?php echo convertGETtoPOST(Yii::app()->createUrl("admin/labels/sa/delete/", ["lid" => $lid])); ?> })'
+                           data-message="<?php eT("Do you really want to delete this label set?","js"); ?>"
+                           >
+                            <span class="fa fa-trash text-danger"></span>
+                            <?php eT("Delete label set"); ?>
+                        </button>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                <?php endif;?>
+
+        </div>
+
+
+        <!-- Right action buttons -->
+        <div class="col-lg-6 text-right">
+
+            <!-- view action buttons-->
+            <?php if (isset($labelbar['buttons']['view'])):?>
+
+                <!-- return to admin panel -->
+                <a class="btn btn-default pull-right" href="<?php echo $this->createUrl('admin/index'); ?>" role="button" style="display: block">
+                    <span class="fa fa-backward"></span>
+                    &nbsp;&nbsp;
+                    <?php eT('Return to admin home'); ?>
+                </a>
+
+                <?php endif; ?>
+
+            <!-- edition action buttons -->
+            <?php if (isset($labelbar['buttons']['edition'])):?>
+                <a class="btn btn-success" href="#" role="button" id="save-form-button" data-form-id="<?php echo $labelbar['savebutton']['form']; ?>">
+                    <span class="fa fa-floppy-o"></span>
+
+                    <?php echo $labelbar['savebutton']['text'];?>
+                </a>
+                <?php endif;?>
+
+            <!-- Close -->
+            <?php if(isset($labelbar['closebutton']['url'])):?>
+                <a class="btn btn-danger" href="<?php echo $labelbar['closebutton']['url']; ?>" role="button">
+                    <span class="fa fa-close"></span>
+                    <?php eT("Close");?>
+                </a>
+                <?php endif;?>
+        </div>
+    </div>
+</div>

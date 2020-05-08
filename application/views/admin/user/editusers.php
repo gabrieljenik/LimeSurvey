@@ -1,138 +1,141 @@
-<div class='header ui-widget-header'><?php $clang->eT("User control");?></div><br />
-<table id='users' class='users'>
-    <thead>
-        <tr>
-            <th><?php $clang->eT("Action");?></th>
+<?php
+/* @var $this AdminController */
+/* @var $dataProvider CActiveDataProvider */
 
-            <th style='width:5%'><?php $clang->eT("User ID");?></th>
-            <th style='width:15%'><?php $clang->eT("Username");?></th>
-            <th style='width:20%'><?php $clang->eT("Email");?></th>
-            <th style='width:20%'><?php $clang->eT("Full name");?></th>
-            <?php if(Permission::model()->hasGlobalPermission('superadmin','read')) { ?>
-                <th style='width:5%'><?php $clang->eT("No of surveys");?></th>
-                <?php } ?>
-            <th style='width:15%'><?php $clang->eT("Created by");?></th>
-        </tr></thead><tbody>
-        <tr >
-            <td style='padding:3px;'>
-                <?php echo CHtml::form(array('admin/user/sa/modifyuser'), 'post');?>            
-                    <input type='image' src='<?php echo $imageurl;?>edit_16.png' alt='<?php $clang->eT("Edit this user");?>' />
-                    <input type='hidden' name='action' value='modifyuser' />
-                    <input type='hidden' name='uid' value='<?php echo htmlspecialchars($usrhimself['uid']);?>' />
+// DO NOT REMOVE This is for automated testing to validate we see that page
+echo viewHelper::getViewTestTag('usersIndex');
+
+?>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <button id="add_user_admin" data-target="#adduser-modal" data-toggle="modal" title="<?php eT('Add a new survey administrator'); ?>" class="btn btn-default"><span class="icon-add text-success"></span> <?php eT("Add user");?></button>
+        </div>
+    </div>
+<div class="pagetitle h3"><?php eT("User control");?></div>
+    <!-- Search Box -->
+    <div class="row">
+        <div class="pull-right">
+            <div class="form text-right">
+                <!-- Begin Form -->
+                <?php $form  =  $this->beginWidget('CActiveForm', array(
+                    'action' => Yii::app()->createUrl($formUrl),
+                    'method' => 'get',
+                    'htmlOptions'=>array(
+                        'class'=>'form-inline',
+                    ),
+                )); ?>
+
+                <!-- search input -->
+                <div class="form-group">
+                    <?php echo $form->label($model, 'searched_value', array('label'=>gT('Search:'),'class'=>'control-label')); ?>
+                    <?php echo $form->textField($model, 'searched_value', array('class'=>'form-control')); ?>
+                </div>
+
+                <?php echo CHtml::submitButton(gT('Search','unescaped'), array('class'=>'btn btn-success')); ?>
+                <a href="<?php echo Yii::app()->createUrl('admin/user/sa/index');?>" class="btn btn-warning"><?php eT('Reset');?></a>
+
+                <?php $this->endWidget(); ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="margin-bottom: 100px">
+        <div class="container-fluid">
+            <?php
+            $this->widget('bootstrap.widgets.TbGridView', array(
+                'id' => 'all_users',
+                'itemsCssClass' => 'table table-striped items',
+                'dataProvider' => $model->search(),
+                'columns' => $model->colums,
+                'afterAjaxUpdate' => 'bindButtons',
+                'summaryText'   => gT('Displaying {start}-{end} of {count} result(s).').' '. sprintf(gT('%s rows per page'),
+                            CHtml::dropDownList(
+                                'pageSize',
+                                $pageSize,
+                                Yii::app()->params['pageSizeOptions'],
+                                array('class'=>'changePageSize form-control', 'style'=>'display: inline; width: auto'))
+                            ),
+                    ));
+
+                ?>
+            </div>
+
+            <!-- To update rows per page via ajax -->
+            <script type="text/javascript">
+                jQuery(function($) {
+                    jQuery(document).on("change", '#pageSize', function(){
+                        $.fn.yiiGridView.update('all_users',{ data:{ pageSize: $(this).val() }});
+                    });
+                });
+            </script>
+    </div>
+</div>
+<div id='adduser-modal' class="modal fade " tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel"><?php eT("Add a new survey administrator") ?></h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                 <?php echo CHtml::form(array('admin/user/sa/adduser'), 'post', array('class'=>''));?>
+                    <?php if (App()->getPluginManager()->isPluginActive('AuthLDAP')) {
+                        echo "<div class=\"form-group\">";
+                          echo "<label  class='control-label'>";
+                            eT("Central database");
+                          echo "</label>";
+                          echo "<div class=''>";
+                            echo CHtml::dropDownList('user_type',
+                                'DB',
+                                array(
+                                'DB' => gT("Internal database authentication",'unescaped'),
+                                'LDAP' => gT("LDAP authentication",'unescaped')
+                                ),
+                                array(
+                                    'class' => ""
+                                )
+                            );
+                          echo "</div>";
+                        echo "</div>";
+                      } else {
+                          echo "<input type='hidden' id='user_type' name='user_type' value='DB'/>";
+                      }
+                    ?>
+
+                    <div class="form-group">
+                        <label for="new_user" class="control-label"><?php eT("Username:");?></label>
+                        <div class="">
+                            <input type='text' class="text input-sm form-control" id='new_user' name='new_user' required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_email" class="control-label" ><?php eT("Email:");?></label>
+                        <div class="">
+                            <input type='email' class="text input-sm form-control" id='new_email' name='new_email' required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_full_name" class="control-label "><?php eT("Full name:");?></label>
+                        <div class="">
+                            <input type='text' class="text input-sm form-control" id='new_full_name' name='new_full_name' required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-12 text-right">
+                            <?php eT("The password will be generated and sent by email.") ?>
+                        </div>
+                    </div>
+                    <div class="col-md-12">&nbsp;</div>
+                    <div class="col-md-4 col-md-offset-8">
+                        <input type='submit' id='add_user_btn' class="btn btn-primary btn-block" value='<?php eT("Save");?>' />
+                        <input type='hidden' name='action' value='adduser' />
+                    </div>
+                </div>
                 </form>
-
-                <?php if ($usrhimself['parent_id'] != 0 && Permission::model()->hasGlobalPermission('users','delete') ) { ?>
-                <?php echo CHtml::form(array('admin/user/sa/deluser'), 'post', array('onsubmit'=>'return confirm("'.$clang->gT("Are you sure you want to delete this entry?","js").'")') );?>            
-                        <input type='image' src='<?php echo $imageurl;?>token_delete.png' alt='<?php $clang->eT("Delete this user");?>' />
-                        <input type='hidden' name='action' value='deluser' />
-                        <input type='hidden' name='user' value='<?php echo htmlspecialchars($usrhimself['user']);?>' />
-                        <input type='hidden' name='uid' value='<?php echo $usrhimself['uid'];?>' />
-                    </form>
-                    <?php } ?>
-
-            </td>
-
-            <td><strong><?php echo $usrhimself['uid'];?></strong></td>
-            <td><strong><?php echo htmlspecialchars($usrhimself['user']);?></strong></td>
-            <td><strong><?php echo htmlspecialchars($usrhimself['email']);?></strong></td>
-            <td><strong><?php echo htmlspecialchars($usrhimself['full_name']);?></strong></td>
-
-            <?php if(Permission::model()->hasGlobalPermission('superadmin','read')) { ?>
-                <td><strong><?php echo $noofsurveys;?></strong></td>
-                <?php } ?>
-
-            <?php if(isset($usrhimself['parent_id']) && $usrhimself['parent_id']!=0) { ?>
-                <td><strong><?php echo $row;?></strong></td>
-                <?php } else { ?>
-                <td><strong>---</strong></td>
-                <?php } ?>
-        </tr>
-
-        <?php for($i=1; $i<=count($usr_arr); $i++) {
-                $usr = $usr_arr[$i];
-            ?>
-            <tr>
-
-                <td style='padding:3px;'>          
-                    <?php if (Permission::model()->hasGlobalPermission('superadmin','read') || $usr['uid'] == Yii::app()->session['loginID'] || (Permission::model()->hasGlobalPermission('users','update') && $usr['parent_id'] == Yii::app()->session['loginID'])) { ?>
-                        <?php echo CHtml::form(array('admin/user/sa/modifyuser'), 'post');?>            
-                            <input type='image' src='<?php echo $imageurl;?>edit_16.png' alt='<?php $clang->eT("Edit this user");?>' />
-                            <input type='hidden' name='action' value='modifyuser' />
-                            <input type='hidden' name='uid' value='<?php echo $usr['uid'];?>' />
-                        </form>
-                        <?php } ?>
-
-                    <?php if ( ((Permission::model()->hasGlobalPermission('superadmin','read') &&
-                        $usr['uid'] != Yii::app()->session['loginID'] ) ||
-                        (Permission::model()->hasGlobalPermission('users','update') &&
-                        $usr['parent_id'] == Yii::app()->session['loginID'])) && $usr['uid']!=1) { ?>
-                        <?php echo CHtml::form(array('admin/user/sa/setuserpermissions'), 'post');?>            
-                            <input type='image' src='<?php echo $imageurl;?>security_16.png' alt='<?php $clang->eT("Set global permissions for this user");?>' />
-                            <input type='hidden' name='action' value='setuserpermissions' />
-                            <input type='hidden' name='user' value='<?php echo htmlspecialchars($usr['user']);?>' />
-                            <input type='hidden' name='uid' value='<?php echo $usr['uid'];?>' />
-                        </form>
-                        <?php }
-                        if ((Permission::model()->hasGlobalPermission('superadmin','read') || Permission::model()->hasGlobalPermission('templates','read'))  && $usr['uid']!=1) { ?>
-                        <?php echo CHtml::form(array('admin/user/sa/setusertemplates'), 'post');?>            
-                            <input type='image' src='<?php echo $imageurl;?>templatepermissions_small.png' alt='<?php $clang->eT("Set template permissions for this user");?>' />
-                            <input type='hidden' name='action' value='setusertemplates' />
-                            <input type='hidden' name='user' value='<?php echo htmlspecialchars($usr['user']);?>' />
-                            <input type='hidden' name='uid' value='<?php echo $usr['uid'];?>' />
-                        </form>
-                        <?php }
-                        if ((Permission::model()->hasGlobalPermission('superadmin','read') || (Permission::model()->hasGlobalPermission('users','delete')  && $usr['parent_id'] == Yii::app()->session['loginID']))&& $usr['uid']!=1) { ?>
-                        <?php echo CHtml::form(array('admin/user/sa/deluser'), 'post');?>            
-                            <input type='image' src='<?php echo $imageurl;?>token_delete.png' alt='<?php $clang->eT("Delete this user");?>' onclick='return confirm("<?php $clang->eT("Are you sure you want to delete this entry?","js");?>")' />
-                            <input type='hidden' name='action' value='deluser' />
-                            <input type='hidden' name='user' value='<?php echo htmlspecialchars($usr['user']);?>' />
-                            <input type='hidden' name='uid' value='<?php echo $usr['uid'];?>' />
-                        </form>
-                        <?php } 
-                        if (Yii::app()->session['loginID'] == "1" && $usr['parent_id'] !=1 ) { ?>
-
-                        <?php echo CHtml::form(array('admin/user/sa/setasadminchild'), 'post');?>            
-                            <input type='image' src='<?php echo $imageurl;?>takeownership.png' alt='<?php $clang->eT("Take ownership");?>' />
-                            <input type='hidden' name='action' value='setasadminchild' />
-                            <input type='hidden' name='user' value='<?php echo htmlspecialchars($usr['user']);?>' />
-                            <input type='hidden' name='uid' value='<?php echo $usr['uid'];?>' />
-                        </form>
-                        <?php } ?>
-                </td>
-                <td><?php echo $usr['uid'];?></td>
-                <td><?php echo htmlspecialchars($usr['user']);?></td>
-                <td><a href='mailto:<?php echo htmlspecialchars($usr['email']);?>'><?php echo htmlspecialchars($usr['email']);?></a></td>
-                <td><?php echo htmlspecialchars($usr['full_name']);?></td>
-
-                <?php if(Permission::model()->hasGlobalPermission('superadmin','read')) { ?>
-                    <td><?php echo $noofsurveyslist[$i];?></td>
-                <?php } ?>
-
-                <?php $uquery = "SELECT users_name FROM {{users}} WHERE uid=".$usr['parent_id'];
-                    $uresult = dbExecuteAssoc($uquery); //Checked
-                    $userlist = array();
-                    $srow = $uresult->read();
-
-                    $usr['parent'] = $srow['users_name']; ?>
-
-                <?php if (isset($usr['parent_id'])) { ?>
-                    <td><?php echo htmlspecialchars($usr['parent']);?></td>
-                    <?php } else { ?>
-                    <td>-----</td>
-                    <?php } ?>
-
-            </tr>
-            <?php $row++;
-        } ?>
-    </tbody></table><br />
-<?php if(Permission::model()->hasGlobalPermission('superadmin','read') || Permission::model()->hasGlobalPermission('users','create')) { ?>
-    <?php echo CHtml::form(array('admin/user/sa/adduser'), 'post');?>            
-        <table class='users'><tr class='oddrow'>
-                <th><?php $clang->eT("Add user:");?></th>
-                <td style='width:20%'><input type='text' name='new_user' /></td>
-                <td style='width:20%'><input type='text' name='new_email' /></td>
-                <td style='width:20%'><input type='text' name='new_full_name' /></td><td style='width:8%'>&nbsp;</td>
-                <td style='width:15%'><input type='submit' value='<?php $clang->eT("Add user");?>' />
-                    <input type='hidden' name='action' value='adduser' /></td>
-            </tr></table></form><br />
-    <?php } ?>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>

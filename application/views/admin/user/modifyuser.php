@@ -1,45 +1,72 @@
-<div class='header ui-widget-header'><?php $clang->eT("Editing user");?></div><br />
-<?php echo CHtml::form(array("admin/user/sa/moduser"), 'post', array('name'=>'moduserform', 'id'=>'moduserform')); ?>
-
-<table class='edituser'><thead><tr>
-<th><?php $clang->eT("Username");?></th>
-<th><?php $clang->eT("Email");?></th>
-<th><?php $clang->eT("Full name");?></th>
-<th><?php $clang->eT("Password");?></th>
-</tr></thead>
-<tbody><tr>
 <?php
-function rsdsl($mur) {
-	foreach ($mur as $mds) {
-		if(is_array($mds)) {
-			return TRUE;
-		}else{
-			return FALSE;
-		}
-	}
-}
-if(rsdsl($mur)) {
-foreach ($mur as $mrw) { ?>
-    <td align='center'><strong><?php echo $mrw['users_name'];?></strong></td>
-    <td align='center'> <input type='email' size='30' name='email' value="<?php echo $mrw['email'];?>" /></td>
-    <td align='center'> <input type='text' size='30' name='full_name' value="<?php echo $mrw['full_name'];?>" />
-    <input type='hidden' name='user' value="<?php echo $mrw['users_name'];?>" />
-    <input type='hidden' name='uid' value="<?php echo $mrw['uid'];?>" /></td>
-    <td align='center'> <input type='password' name='pass' value="%%unchanged%%" /></td>
-<?php }}else{
-	$mur = array_map('htmlspecialchars', $mur); ?>
-	<td align='center'><strong><?php echo $mur['users_name'];?></strong></td>
-    <td align='center'> <input type='email' size='30' name='email' value="<?php echo $mur['email'];?>" /></td>
-    <td align='center'> <input type='text' size='30' name='full_name' value="<?php echo $mur['full_name'];?>" />
-    <input type='hidden' name='user' value="<?php echo $mur['users_name'];?>" />
-    <input type='hidden' name='uid' value="<?php echo $mur['uid'];?>" /></td>
-    <td align='center'> <input type='password' name='pass' value="%%unchanged%%" /></td>
-<?php } ?>
-</tr>
-</tbody>
-</table>
-<p>
-<input type='submit' value='<?php $clang->eT("Save");?>' />
-<input type='hidden' name='action' value='moduser' />
-</p>
-</form>
+/**
+* @var User $oUser
+*/
+// DO NOT REMOVE This is for automated testing to validate we see that page
+echo viewHelper::getViewTestTag('modifyUser');
+?>
+
+<div class="pagetitle h3">
+<?php eT("Editing user");?>
+</div>
+
+
+<div class="container container-center">
+    <div class="row" style="margin-bottom: 100px">
+      <div class="col-lg-12 content-right">
+        <?php $form=$this->beginWidget('TbActiveForm', array(
+                'id'    => 'moduserform',
+                'action'=> array("admin/user/sa/moduser"),
+                'enableAjaxValidation'=>false,
+            )); ?>
+                <div class="form-group">
+                    <label for="user" class=" control-label">
+                        <?php eT("Username");?>
+                    </label>
+                    <div class="">
+                        <?php echo $form->textField($oUser, 'users_name',array('readonly'=>'readonly'));?>
+                    </div>
+                    <div class="">
+                        <span class='text-info'><?php eT("The user name cannot be changed."); ?></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="email" class=" control-label">
+                        <?php eT("Email");?>
+                    </label>
+                    <div class="">
+                        <?php echo $form->emailField($oUser,'email');?>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="full_name" class=" control-label">
+                        <?php eT("Full name");?>
+                    </label>
+                    <div class="">
+                        <?php echo $form->textField($oUser, 'full_name');?>
+                    </div>
+                </div>
+
+                <?php if( !Permission::model()->hasGlobalPermission('superadmin','read', $oUser->uid) || (Permission::isForcedSuperAdmin(Permission::getUserId())) ): ?>
+                <div class="form-group">
+                    <label for="password" class=" control-label">
+                        <?php eT("Password");?>
+                    </label>
+                    <div class="">
+                        <?php echo $form->passwordField($oUser, 'password',array('value'=>'', 'placeholder'=>html_entity_decode(str_repeat("&#9679;",10),ENT_COMPAT,'utf-8'))); ?>
+                    </div>
+                    <div class="">
+                        <span class='text-info'><?php echo $passwordHelpText; ?></span>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <p>
+                    <input type='submit' class="hidden" value='<?php eT("Save");?>' />
+                    <input type='hidden' name='action' value='moduser' />
+                    <input type='hidden' name='uid' value="<?php echo $oUser->uid;?>" />
+                </p>
+            <?php $this->endWidget()?>
+        </div>
+    </div>
+</div>

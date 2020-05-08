@@ -1,96 +1,190 @@
-<?php echo PrepareEditorScript(true, $this); ?>
-<div class='header ui-widget-header'>
-    <?php $clang->eT("Send email reminder"); ?></div><br />
+<?php
+/**
+ * Send email reminder
+ */
+?>
 
-<?php if ($thissurvey['active'] != 'Y') { ?>
-    <div class='messagebox ui-corner-all'><div class='warningheader'><?php $clang->eT('Warning!'); ?></div><?php $clang->eT("This survey is not yet activated and so your participants won't be able to fill out the survey."); ?></div>
-<?php } ?>
+<div class='side-body <?php echo getSideBodyClass(false); ?>'>
+    <a class="btn btn-default pull-right" href="#" role="button" id="send-reminders-button">
+        <span class="icon-invite" ></span>
+        <?php eT("Send reminders");?>
+    </a>
+    <h3><?php eT("Send email reminder"); ?></h3>
+    <div class="row">
+        <div class="col-lg-12 content-right">
+            <?php echo PrepareEditorScript(true, $this); ?>
 
-<div id='tabs'>
-    <ul>
-        <?php
-        foreach ($surveylangs as $language)
-        {
-            //GET SURVEY DETAILS
-            echo '<li><a href="#tabpage_' . $language . '">' . getLanguageNameFromCode($language, false);
-            if ($language == $baselang)
-            {
-                echo "(" . $clang->gT("Base language") . ")";
-            }
-            echo "</a></li>";
-        }
-        ?>
-    </ul>
+            <?php if ($thissurvey['active'] != 'Y'):?>
+                <?php if ($thissurvey[$baselang]['active'] != 'Y'): ?>
+                    <div class="jumbotron message-box message-box-error">
+                        <h2 class='text-warning'><?php eT('Warning!'); ?></h2>
+                        <p class="lead text-warning">
+                            <?php eT("This survey is not yet activated and so your participants won't be able to fill out the survey."); ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
 
-    <?php echo CHtml::form(array("admin/tokens/sa/email/action/remind/surveyid/{$surveyid}"), 'post', array('id'=>'sendreminder', 'class'=>'form30')); ?>
-        <?php
-        foreach ($surveylangs as $language)
-        {
-            //GET SURVEY DETAILS
-            if (!$thissurvey[$language]['email_remind'])
-            {
-                $thissurvey[$language]['email_remind'] = str_replace("\n", "\r\n", $clang->gT("Dear {FIRSTNAME},\n\nRecently we invited you to participate in a survey.\n\nWe note that you have not yet completed the survey, and wish to remind you that the survey is still available should you wish to take part.\n\nThe survey is titled:\n\"{SURVEYNAME}\"\n\n\"{SURVEYDESCRIPTION}\"\n\nTo participate, please click on the link below.\n\nSincerely,\n\n{ADMINNAME} ({ADMINEMAIL})\n\n----------------------------------------------\nClick here to do the survey:\n{SURVEYURL}") . "\n\n" . $clang->gT("If you do not want to participate in this survey and don't want to receive any more invitations please click the following link:\n{OPTOUTURL}"));
-            }
-            echo "<div id='tabpage_{$language}'><ul>"
-            . "<li><label for='from_$language' >" . $clang->gT("From") . ":</label>\n"
-            . "<input type='text' size='50' name='from_$language' id='from_$language' value=\"".htmlspecialchars($thissurvey['adminname'],ENT_QUOTES,'UTF-8')." <".htmlspecialchars($thissurvey['adminemail'],ENT_QUOTES,'UTF-8').">\" /></li>\n"
-            . "<li><label for='subject_$language' >" . $clang->gT("Subject") . ":</label>";
+            <?php echo CHtml::form(array("admin/tokens/sa/email/action/remind/surveyid/{$surveyid}"), 'post', array('id'=>'sendreminder', 'class'=>'')); ?>
+            <div class="row">
+                <div class="col-sm-6">
+                <?php if (count($tokenids)>0): ?>
+                        <div class='form-group'>
+                            <label class='control-label '><?php eT("Send reminder to participant ID(s):"); ?></label>
+                            <div class=''>
+                                <?php echo short_implode(", ", "-", (array) $tokenids); ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
-            $fieldsarray["{ADMINNAME}"] = $thissurvey['adminname'];
-            $fieldsarray["{ADMINEMAIL}"] = $thissurvey['adminemail'];
-            $fieldsarray["{SURVEYNAME}"] = $thissurvey[$language]['name'];
-            $fieldsarray["{SURVEYDESCRIPTION}"] = $thissurvey[$language]['description'];
-            $fieldsarray["{EXPIRY}"] = $thissurvey["expiry"];
+                    <div class='form-group'>
+                        <label class='control-label ' for='bypassbademails'><?php eT("Bypass participants with failing email addresses:"); ?></label>
+                        <div class=''>
+                            <?php
+                            $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                                'name' => "bypassbademails",
+                                'id'=>"bypassbademails",
+                                'value' => '1',
+                                'onLabel'=>gT('On'),
+                                'offLabel' => gT('Off')));
+                            ?>
+                        </div>
+                    </div>
 
-            $subject = Replacefields($thissurvey[$language]['email_remind_subj'], $fieldsarray, false);
-            $textarea = Replacefields($thissurvey[$language]['email_remind'], $fieldsarray, false);
-            if ($ishtml !== true)
-            {
-                $textarea = str_replace(array('<x>', '</x>'), array(''), $textarea);
-            }
+                    <div class='form-group'>
+                        <label class='control-label ' for='minreminderdelay'><?php eT("Min days between reminders:"); ?></label>
+                        <div class=''>
+                            <?php echo CHtml::textField('minreminderdelay'); ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class='form-group'>
 
-            echo "<input type='text' size='83' id='subject_$language' name='subject_$language' value=\"$subject\" /></li><li>\n"
-            . "<label for='message_$language'>" . $clang->gT("Message") . ":</label>\n"
-            . "<div  class='htmleditor'>\n"
-            . "<textarea name='message_$language' id='message_$language' rows='20' cols='80' >";
-            echo htmlspecialchars($textarea);
-            echo "</textarea>"
-            . "</div>\n"
-            . getEditor("email-rem", "message_$language", "[" . $clang->gT("Reminder Email:", "js") . "](" . $language . ")", $surveyid, '', '', "tokens")
-            . "</li>\n"
-            . "</ul></div>";
-        }
-        ?>
-<ul>
+                        <label class='control-label ' for='maxremindercount'><?php eT("Max reminders:"); ?></label>
+                        <div class=''>
+                            <?php echo CHtml::textField('maxremindercount'); ?>
+                        </div>
+                    </div>
 
-    <?php
-    if (count($tokenids)>0)
-    { ?>
-        <li>
-            <label><?php $clang->eT("Send reminder to token ID(s):"); ?></label>
-        <?php echo implode(", ", (array) $tokenids); ?></li>
-    <?php } ?>
-    <li><label for='bypassbademails'>
-            <?php $clang->eT("Bypass token with failing email addresses"); ?>:</label>
-        <select id='bypassbademails' name='bypassbademails'>
-            <option value='Y'><?php $clang->eT("Yes"); ?></option>
-            <option value='N'><?php $clang->eT("No"); ?></option>
-        </select></li>
-    <li><label for='minreminderdelay'>
-<?php $clang->eT("Min days between reminders"); ?>:</label>
-        <input type='text' value='' name='minreminderdelay' id='minreminderdelay' /></li>
+                    <div class='form-group'>
+                          <?php echo CHtml::label(gT("Bypass date control before sending email:"),'bypassdatecontrol', 
+                          array(
+                              'title'=>gt("If some participants have a 'valid from' date set which is in the future, they will not be able to access the survey before that 'valid from' date."),
+                              'unescaped'=>'unescaped', 
+                              'class' => 'control-label '
+                              )
+                            ); ?>
+                          <div class=''>
+                          <?php
+                            $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                                'name' => "bypassdatecontrol",
+                                'id'=>"bypassdatecontrol",
+                                'value' => '0',
+                                'onLabel'=>gT('On'),
+                                'offLabel' => gT('Off')));
+                            ?>
+                          </div>
+                          <div class=''></div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <ul class="nav nav-tabs">
+                    <?php
+                    $c = true;
+                    foreach ($surveylangs as $language)
+                    {
+                        //GET SURVEY DETAILS
+                        echo '<li role="presentation"';
 
-    <li><label for='maxremindercount'>
-<?php $clang->eT("Max reminders"); ?>:</label>
-        <input type='text' value='' name='maxremindercount' id='maxremindercount' /></li>
-</ul><p>
-    <input type='submit' value='<?php $clang->eT("Send Reminders"); ?>' />
-    <input type='hidden' name='ok' value='absolutely' />
-    <input type='hidden' name='subaction' value='remind' />
+                        if ($c)
+                        {
+                            $c=false;
+                            echo ' class="active"';
+                        }
 
-    <?php if (!empty($tokenids)) { ?>
-    <input type='hidden' name='tokenids' value='<?php echo implode('|', (array) $tokenids); ?>' />
-    <?php } ?>
+                        echo ' ><a data-toggle="tab" href="#'.$language.'">' . getLanguageNameFromCode($language, false);
+                        if ($language == $baselang)
+                        {
+                            echo " (" . gT("Base language") . ")";
+                        }
+                        echo "</a></li>";
+                    }
+                    ?>
+                </ul>
 
+                <div class="tab-content">
+                    <?php
+                    $c = true;
+                    foreach ($surveylangs as $language)
+                    {
+                        $fieldsarray["{ADMINNAME}"] = $thissurvey['adminname'];
+                        $fieldsarray["{ADMINEMAIL}"] = $thissurvey['adminemail'];
+                        $fieldsarray["{SURVEYNAME}"] = $thissurvey[$language]['name'];
+                        $fieldsarray["{SURVEYDESCRIPTION}"] = $thissurvey[$language]['description'];
+                        $fieldsarray["{EXPIRY}"] = $thissurvey["expiry"];
+
+                        $subject = Replacefields($thissurvey[$language]['email_remind_subj'], $fieldsarray, false);
+                        $textarea = Replacefields($thissurvey[$language]['email_remind'], $fieldsarray, false);
+                        if ($ishtml !== true)
+                        {
+                            $textarea = str_replace(array('<x>', '</x>'), array(''), $textarea); // ?????
+                        }
+                        ?>
+
+                        <div id="<?php echo $language; ?>" class="tab-pane fade in <?php if ($c){$c=false;echo ' active';}?>">
+
+                            <div class='form-group'>
+                                <label class='control-label ' for='from_<?php echo $language; ?>'><?php eT("From:"); ?></label>
+                                <div class=''>
+                                    <?php echo CHtml::textField("from_{$language}",$thissurvey[$baselang]['adminname']." <".$thissurvey[$baselang]['adminemail'].">",array('class' => 'form-control')); ?>
+                                </div>
+                            </div>
+
+                            <div class='form-group'>
+                                <label class='control-label ' for='subject_<?php echo $language; ?>'><?php eT("Subject:"); ?></label>
+                                <div class=''>
+                                    <?php echo CHtml::textField("subject_{$language}",$subject,array('class' => 'form-control')); ?>
+                                </div>
+                            </div>
+
+                            <div class='form-group'>
+                                <label class='control-label ' for='message_<?php echo $language; ?>'><?php eT("Message:"); ?></label>
+                                <div class="htmleditor ">
+                                    <?php echo CHtml::textArea("message_{$language}",$textarea,array('cols'=>80,'rows'=>20, 'class' => 'form-control')); ?>
+                                    <?php echo getEditor("email-reminder", "message_$language", "[" . gT("Reminder Email:", "js") . "](" . $language . ")", $surveyid, '', '', "tokens"); ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php } ?>
+                </div>
+                <div class="row">
+                    <div class='form-group'>
+                        <div class=''></div>
+                        <div class=''>
+                            <?php echo CHtml::submitButton(gT("Send Reminders",'unescaped'), array('class'=>'btn btn-default')); ?>
+                        </div>
+
+                            <?php
+                                echo CHtml::hiddenField('ok','absolutely');
+                                echo CHtml::hiddenField('subaction','remind');
+                                if (!empty($tokenids)) {
+                                    echo CHtml::hiddenField('tokenids',implode('|', (array) $tokenids));
+                                }
+                            ?>
+                    </div>
+                </div>
+            </div>
+        </form>
     </form>
 </div>
+
+<?php
+App()->getClientScript()->registerScript("Tokens:BindReminderView", "
+        LS.renderBootstrapSwitch();
+        $('#send-reminders-button').on('click', function(){
+            $('#sendreminder').submit();
+        })
+", LSYii_ClientScript::POS_POSTSCRIPT );
+?>

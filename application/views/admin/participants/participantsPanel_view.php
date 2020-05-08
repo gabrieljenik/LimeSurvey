@@ -1,126 +1,150 @@
 <script src="<?php echo Yii::app()->getConfig('adminscripts') . "participantpanel.js" ?>" type="text/javascript"></script>
+
 <script type="text/javascript">
     var exporttocsvcountall = "<?php echo Yii::app()->getController()->createUrl("/admin/participants/sa/exporttocsvcountAll"); ?>";
     var exporttocsvall = "<?php echo Yii::app()->getController()->createUrl("exporttocsvAll"); ?>";
-    var okBtn = "<?php $clang->eT("OK", 'js') ?>";
-    var error = "<?php $clang->eT("Error", 'js') ?>";
-    var exportBtn = "<?php $clang->eT("Export", 'js') ?>";
-    var cancelBtn = "<?php $clang->eT("Cancel", 'js') ?>";
-    var sSelectAllText = "<?php $clang->eT("Select all", 'js') ?>";
-    var sNonSelectedText = "<?php $clang->eT("None selected", 'js') ?>";
-    var sNSelectedText = "<?php $clang->eT("selected", 'js') ?>";
+    var okBtn = "<?php eT("OK", 'js') ?>";
+    var error = "<?php eT("Error", 'js') ?>";
+    var exportBtn = "<?php eT("Export", 'js') ?>";
+    var cancelBtn = "<?php eT("Cancel", 'js') ?>";
+    var sSelectAllText = "<?php eT("Select all", 'js') ?>";
+    var sNonSelectedText = "<?php eT("None selected", 'js') ?>";
+    var sNSelectedText = "<?php eT("selected", 'js') ?>";
     var exportToCSVURL = "<?php echo Yii::app()->getController()->createUrl("admin/participants/sa/exporttocsv"); ?>";
+    var openModalParticipantPanel = "<?php echo ls\ajax\AjaxHelper::createUrl("/admin/participants/sa/openModalParticipantPanel"); ?>";
+    var editValueParticipantPanel = "<?php echo Yii::app()->getController()->createUrl("/admin/participants/sa/editValueParticipantPanel"); ?>";
+
+    var translate_blacklisted = "<?php echo '<i class=\"fa fa-undo\"></i> '.gT('Remove from blacklist?'); ?>";
+    var translate_notBlacklisted = "<?php echo '<i class=\"fa fa-ban\"></i> '.gT('Add to blacklist?'); ?>";
+    var datepickerConfig =     <?php
+        $dateformatdetails = getDateFormatData(Yii::app()->session['dateformat']);
+        echo json_encode(array(
+            'dateformatdetails'      => $dateformatdetails['dateformat'],
+            'dateformatdetailsjs'    => $dateformatdetails['jsdate'],
+            "initDatePickerObject" => array(
+                "format" => $dateformatdetails['jsdate'],
+                "tooltips" => array(
+                    "today" => gT('Go to today'),
+                    "clear" => gT('Clear selection'),
+                    "close" => gT('Close the picker'),
+                    "selectMonth" => gT('Select month'),
+                    "prevMonth" => gT('Previous month'),
+                    "nextMonth" => gT('Next month'),
+                    "selectYear" => gT('Select year'),
+                    "prevYear" => gT('Previous year'),
+                    "nextYear" => gT('Next year'),
+                    "selectDecade" => gT('Select decade'),
+                    "prevDecade" => gT('Previous decade'),
+                    "nextDecade" => gT('Next decade'),
+                    "prevCentury" => gT('Previous century'),
+                    "nextCentury" => gT('Next century')
+                )
+            )
+        ));?>;
 </script>
-<div class="menubar">
-    <div class='menubar-title ui-widget-header'>
-        <strong><?php $clang->eT("Participant panel"); ?> </strong>
-    </div>
-    <?php
-        $home = array('src' => $sImageURL.'home.png',
-            'alt' => $clang->gT("Main admin screen"), 
-            'title' => $clang->gT("Main admin screen"),  
-            'style' => 'margin-left:2px');
-
-        $information = array('src' => $sImageURL.'summary.png',
-            'alt' => $clang->gT("Information"),  
-            'title' => $clang->gT("Information"), 
-            'style' => 'margin-left:2px');
-
-        $import = array('src' => $sImageURL.'importcsv.png',
-            'alt' => $clang->gT("Import from CSV file"), 
-            'title' => $clang->gT("Import from CSV file"), 
-            'style' => 'margin-left:0px',
-            'style' => 'margin-right:1px');
-
-        $export = array('src' => $sImageURL.'exportcsv.png',
-            'alt' => $clang->gT("Export to CSV file"), 
-            'title' => $clang->gT("Export to CSV file"),
-            'name' => 'export',
-            'id' => 'export',
-            'style' => 'margin-left:0px',
-            'style' => 'margin-right:1px');
-
-        $display = array('src' => $sImageURL.'document.png',
-            'alt' => $clang->gT("Display participants"),
-            'title' => $clang->gT("Display participants"),
-            'style' => 'margin-left:5px');
-
-        $blacklist = array('src' => $sImageURL.'trafficred.png',
-            'alt' => $clang->gT("Blacklist control"),
-            'title' => $clang->gT("Blacklist control"),
-            'style' => 'margin-left:1px',
-            'style' => 'margin-right:1px');
-
-        $globalsettings = array('src' => $sImageURL.'global.png',
-            'alt' => $clang->gT("Global participant settings"),
-            'title' => $clang->gT("Global participant settings"),
-            'style' => 'margin-left:5px',
-            'style' => 'margin-right:1px');
-
-        $attributecontrol = array('src' => $sImageURL.'tag.png',
-            'alt' => $clang->gT("Attribute management"),
-            'title' => $clang->gT("Attribute management"),
-            'width' => 50,
-            'height' => 35,
-            'style' => 'margin-left:0px',
-            'style' => 'margin-right:1px');
-
-        $sharepanel = array('src' => $sImageURL.'share.png',
-            'alt' => $clang->gT("Share panel"), 
-            'title' => $clang->gT("Share panel"),
-            'height' => 35,
-            'width' => 35,
-            'style' => 'margin-left:5px');
-
-        $separator = array('src' => $sImageURL.'separator.gif',
-            'alt' => '',
-            'options'=> array(
-                'class' => 'separator'),
-            'title' => '');
-
-        $ajaxloader = array('src' => $sImageURL.'ajax-loader.gif',
-            'alt' => 'AJAX loader',
-            'title' => 'AJAX loader');
-    ?>
-    <div class='menubar-main'>
-        <div class='menubar-left'>
-            <?php
-                echo CHtml::link(CHtml::image($home['src'], $home['alt']), Yii::app()->getController()->createUrl("/admin"));
-                echo CHtml::link(CHtml::image($information['src'], $information['alt']), $this->createUrl('admin/participants/sa/index'));
-                echo CHtml::link(CHtml::image($display['src'], $display['alt']), $this->createUrl('admin/participants/sa/displayParticipants'));
-                echo CHtml::image($separator['src'], $separator['alt'], $separator['options']);
-                echo CHtml::link(CHtml::image($import['src'], $import['alt']), $this->createUrl('admin/participants/sa/importCSV'));
-                echo CHtml::link(CHtml::image($export['src'], $export['alt']), '#',array('id'=>$export['id']));
-                echo CHtml::image($separator['src'], $separator['alt'], $separator['options']);
-                echo CHtml::link(CHtml::image($blacklist['src'], $blacklist['alt']), $this->createUrl('admin/participants/sa/blacklistControl'));
-                if (Permission::model()->hasGlobalPermission('superadmin','read'))
-                {
-                    echo CHtml::link(CHtml::image($globalsettings['src'], $globalsettings['alt']), $this->createUrl('admin/participants/sa/userControl'));
-                }
-                echo CHtml::image($separator['src'], $separator['alt'], $separator['options']);
-                echo CHtml::link(CHtml::image($attributecontrol['src'], $attributecontrol['alt']), $this->createUrl('admin/participants/sa/attributeControl'));
-                echo CHtml::image($separator['src'], $separator['alt'], $separator['options']);
-                echo CHtml::link(CHtml::image($sharepanel['src'], $sharepanel['alt']), $this->createUrl('admin/participants/sa/sharePanel'));
-            ?>
+<div class="menubar surveymanagerbar">
+    <div class="row container-fluid">
+        <div class="col-xs-12 col-md-12">
+            <div class="h2"><?php eT("Central participant database")?></div>
         </div>
     </div>
-    <div id='exportcsvallprocessing' title='exportcsvall' style='display:none'>
-        <?php echo CHtml::image($ajaxloader['src'], $ajaxloader['alt']); ?>
-    </div>
-    <div id='exportcsvallnorow' title='exportcsvallnorow' style='display:none'>
-        <?php $clang->eT("There are no participants to be exported."); ?>
-    </div>
-    <div id="exportcsv" title="exportcsv" style="display:none" class='form30'>
-        <ul><li><label for='attributes'><?php $clang->eT("Attributes to export:"); ?></label>
-                <select id="attributes" name="attributes" multiple="multiple" style='width: 350px' size=7>
-                    <?php
-                        foreach ($aAttributes as $value)
-                        {
-                            echo "<option value=" . $value['attribute_id'] . ">" . $value['defaultname'] . "</option>\n";
-                        }
-                    ?>
-                </select>
-            </li>
-        </ul>
-    </div>    
 </div>
+<div class='menubar surveybar' id="participantbar">
+    <div class='row'>
+
+        <div class="col-md-9">
+            <?php if (Permission::model()->hasGlobalPermission('participantpanel','read')):?>
+                <!-- Display participants -->
+                <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/displayParticipants"); ?>" role="button">
+                    <span class="fa fa-list text-success"></span>
+                    <?php eT("Display CPDB participants");?>
+                </a>
+            <?php elseif (Permission::model()->hasGlobalPermission('participantpanel','create')
+                || ParticipantShare::model()->exists('share_uid = :userid', [':userid' => App()->user->id])):?>
+                <!-- Display my participants -->
+                <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/displayParticipants"); ?>" role="button">
+                    <span class="fa fa-list text-success"></span>
+                    <?php eT("Display my CPDB participants");?>
+                </a>
+            <?php endif;?>
+
+            <!-- Information -->
+            <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/index"); ?>" role="button">
+                <span class="fa fa-list-alt text-success" ></span>
+                <?php eT("Info");?>
+            </a>
+
+            <!-- Import from CSV file -->
+            <?php
+            if (Permission::model()->hasGlobalPermission('participantpanel','import')): ?>
+                <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/importCSV"); ?>" role="button">
+                    <span class="icon-importcsv text-success"></span>
+                    <?php eT("Import");?>
+                </a>
+                <?php endif;?>
+
+            <?php if (Permission::model()->hasGlobalPermission('superadmin','read')):?>
+
+                <!-- Global participant settings -->
+                <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/blacklistControl"); ?>" role="button">
+                    <span class="icon-global text-success"></span>
+                    <?php eT("Blacklist settings");?>
+                </a>
+
+                <!-- Attribute management -->
+                <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/attributeControl"); ?>" role="button">
+                    <span class="fa fa-tag text-success"></span>
+                    <?php eT("Attributes");?>
+                </a>
+
+            <?php endif;?>
+
+            <!-- Share panel -->
+            <a class="btn btn-default" href="<?php echo $this->createUrl("admin/participants/sa/sharePanel"); ?>" role="button">
+                <span class="fa fa-share text-success"></span>
+                <?php eT("Share panel");?>
+            </a>
+
+            <!-- Export to CSV file -->
+            <?php
+            if (Permission::model()->hasGlobalPermission('participantpanel','export')): ?>
+
+                    <a id="export" class="btn btn-default" href="#" role="button">
+                        <span class="icon-exportcsv text-success"></span>
+                        <?php eT("Export all participants");?>
+                    </a>
+
+            <?php endif;?>
+        </div>
+
+
+
+
+        <div class="col-md-3 text-right">
+            <a class="btn btn-default" href="<?php echo $this->createUrl('admin/index'); ?>" role="button">
+                <span class="fa fa-backward"></span>
+                &nbsp;
+                <?php eT('Return to admin home'); ?>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for editing participants-->
+<div class="modal fade" id="participantPanel_edit_modal" tabindex="-1" role="dialog" aria-labelledby="participantPanel_edit_modal">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+
+    </div>
+  </div>
+</div>
+
+<?php
+    $aModalData = ['aAttributes' => $aAttributes];
+    App()->getController()->renderPartial('/admin/participants/modal_subviews/_exportCSV', $aModalData);
+
+App()->getClientScript()->registerScript('ParticipantsPanelBSSwitcher', "
+    LS.renderBootstrapSwitch();
+", LSYii_ClientScript::POS_POSTSCRIPT);
+?>
+

@@ -65,7 +65,7 @@
                     editor.setHighlightActiveLine(config.highlightActiveLine);
                     editor.clearSelection();
                     session.on('change', function(e) {
-                        textarea.val(e.target.getValue());
+                        textarea.val(editor.getValue());
                     });
 
                 }
@@ -89,7 +89,7 @@
                     var data = $(this).data('ace');
                     if (data)
                     {
-                        data.editor.setValue(value);
+                        data.editor.session.setValue(value);
                     }
                 });
             }
@@ -113,6 +113,3 @@
 
 
 })(jQuery);
-
-
-

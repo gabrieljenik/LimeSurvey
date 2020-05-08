@@ -1,72 +1,74 @@
-<div class='header ui-widget-header'><?php $clang->eT("Import label set resources") ?></div>
-<div class='messagebox ui-corner-all'>
-    <div class="successheader"><?php $clang->eT("Success") ?></div><br />
-    <?php $clang->eT("File upload succeeded.") ?><br /><br />
-    <?php $clang->eT("Reading file..") ?><br /><br />
+<div class="jumbotron message-box">
+<h2 class="text-success"><?php eT("Import label set resources") ?></h2>
+<p class="lead text-success"><?php eT("Success") ?></p>
+
 <?php
     $ImportListHeader = '';
     if (!count($aErrorFilesInfo) &&count($aImportedFilesInfo))
     {
-        $status = $clang->gT("Success");
+        $status = gT("Success");
         $statusClass = 'successheader';
         $okfiles = count($aImportedFilesInfo);
         $errfiles=0;
-        $ImportListHeader .= "<br /><strong><u>" . $clang->gT("Imported files list") . ":</u></strong><br />\n";
+        $ImportListHeader .= "<br /><strong><u>" . gT("Imported files list") . ":</u></strong><br />\n";
         $ErrorListHeader = '';
     }
     elseif (count($aErrorFilesInfo) &&count($aImportedFilesInfo))
     {
-        $status = $clang->gT("Partial");
+        $status = gT("Partial");
         $statusClass = 'partialheader';
         $okfiles = count($aImportedFilesInfo);
         $errfiles = count($aErrorFilesInfo);
-        $ErrorListHeader = "<br /><strong><u>" . $clang->gT("Error files list") . ":</u></strong><br />\n";
-        $ImportListHeader .= "<br /><strong><u>" . $clang->gT("Imported files list") . ":</u></strong><br />\n";
+        $ErrorListHeader = "<br /><strong><u>" . gT("Error files list") . ":</u></strong><br />\n";
+        $ImportListHeader .= "<br /><strong><u>" . gT("Imported files list") . ":</u></strong><br />\n";
     }
     else
     {
         $okfiles = 0;
-        $status = $clang->gT("Error");
+        $status = gT("Error");
         $statusClass = 'warningheader';
         $errfiles = count($aErrorFilesInfo);
         $ImportListHeader = '';
-        $ErrorListHeader = "<br /><strong><u>" . $clang->gT("Error files list") . ":</u></strong><br />\n";
+        $ErrorListHeader = "<br /><strong><u>" . gT("Error files list") . ":</u></strong><br />\n";
     }
 ?>
 
-    <strong><?php $clang->eT("Imported resources for") ?> LID:</strong><?php echo $lid ?><br /><br />
-    <div class="<?php echo $statusClass ?>"><?php echo $status ?></div><br />
-    <strong><u><?php $clang->eT("Resources import summary") ?></u></strong><br />
-    <?php echo $clang->gT("Total imported files") . ": $okfiles" ?><br />
-    <?php echo $clang->gT("Total errors") . ": $errfiles" ?><br />
-    <?php echo $ImportListHeader; ?>
-
+    <p><strong><?php eT("Imported resources for") ?> LID:</strong><?php echo $lid ?><br /><br /><p>
+    <p class="<?php echo $statusClass ?>"><?php echo $status ?></p><br />
+    <p><strong><u><?php eT("Resources import summary") ?></u></strong><br /></p>
+    <p><?php echo gT("Total imported files") . ": $okfiles" ?><br /></p>
+    <p><?php echo gT("Total errors") . ": $errfiles" ?><br /></p>
+    <p><?php echo $ImportListHeader; ?></p>
+<p><ul class="list-unstyled">
  <?php
     foreach ($aImportedFilesInfo as $entry)
     {
  ?>
-        <li><?php echo $clang->gT("File") . ": " . $entry["filename"] ?></li>
+        <li><?php echo gT("File") . ": " . $entry["filename"] ?></li>
 <?php
     }
     if (!is_null($aImportedFilesInfo))
     {
 ?>
-        </ul><br />
+        </ul><br /></p>
+        <p><ul class="list-unstyled">
 <?php
     }
     echo $ErrorListHeader;
     foreach ($aErrorFilesInfo as $entry)
     {
 ?>
-        <li><?php echo $clang->gT("File") . ": " . $entry['filename'] . " (" . $entry['status'] . ")" ?></li>
+        <li><?php echo gT("File") . ": " . $entry['filename'] . " (" . $entry['status'] . ")" ?></li>
 <?php
     }
     if (!is_null($aErrorFilesInfo))
     {
 ?>
-        </ul><br />
+        </ul></p><br />
 <?php
     }
 ?>
-    <input type='submit' value='<?php $clang->eT("Back") ?>' onclick="window.open('<?php echo $this->createUrl('admin/labels/sa/view/lid/' . $lid) ?>', '_top')" />
+<p>
+    <input class="btn btn-default btn-lg" type='submit' value='<?php eT("Back") ?>' onclick="window.open('<?php echo $this->createUrl('admin/labels/sa/view/lid/' . $lid) ?>', '_top')" />
+</p>
 </div>

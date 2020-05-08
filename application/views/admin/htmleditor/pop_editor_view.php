@@ -1,17 +1,17 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">
 <html>
     <head>
-        <title><?php printf($clang->gT('Editing %s'), $sFieldText); ?></title>
+        <title><?php printf(gT('Editing %s'), $sFieldText); ?></title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <meta name="robots" content="noindex, nofollow" />
         <?php
-        App()->getClientScript()->registerPackage('jqueryui');
-        App()->getClientScript()->registerPackage('jquery-superfish');
-        App()->getClientScript()->registerCoreScript('ckeditor');
-        App()->getClientScript()->registerCssFile(Yii::app()->getConfig('adminstyleurl') . "jquery-ui/jquery-ui.css" );
+            App()->getClientScript()->registerPackage('jqueryui');
+            App()->getClientScript()->registerPackage('jquery-superfish');
+            App()->getClientScript()->registerPackage('ckeditor');
+            App()->getClientScript()->registerPackage('ckeditoradditions');
+            App()->getClientScript()->registerCssFile(Yii::app()->getConfig('publicstyleurl') . 'jquery-ui.css');
         ?>
-<!--        <script type="text/javascript" src="<?php echo Yii::app()->getConfig('generalscripts') . 'jquery/jquery.js'; ?>"></script> -->
-        <script type="text/javascript" src="<?php echo Yii::app()->getConfig('sCKEditorURL') . '/ckeditor.js'; ?>"></script>
+        <!--<script type="text/javascript" src="<?php echo Yii::app()->getConfig('sCKEditorURL') . '/ckeditor.js'; ?>"></script>-->
     </head>
 
     <body>
@@ -21,7 +21,6 @@
                 <!--
                 function closeme()
                 {
-                    window.onbeforeunload = new Function('var a = 1;');
                     self.close();
                 }
 
@@ -32,13 +31,18 @@
 
 
                 var saveChanges = false;
-                var sReplacementFieldTitle = '<?php $clang->eT('LimeSurvey replacement field properties','js');?>';
-                var sReplacementFieldButton = '<?php $clang->eT('Insert/edit LimeSurvey replacement field','js');?>';
-                $(document).ready(function(){
+                var sReplacementFieldTitle = '<?php eT('Placeholder fields','js');?>';
+                var sReplacementFieldButton = '<?php eT('Insert/edit placeholder field','js');?>';
+                $(document).on('ready pjax:scriptcomplete', function(){
+                    //console.log('iGroupId: '+iGroupId);
+            // Better use try/catch to not crash JS completely
+            /*
+                try{ console.log('iGroupId: '+iGroupId); } catch (e){ console.log(e); }
+                */
+                if($('textarea').length > 0){
                     CKEDITOR.on('instanceReady',CKeditor_OnComplete);
                     var oCKeditor = CKEDITOR.replace( 'MyTextarea' ,  { height	: '350',
                         width	: '98%',
-                        customConfig : "<?php echo Yii::app()->getConfig('adminscripts') . '/ckeditor-config.js'; ?>",
                         toolbarStartupExpanded : true,
                         ToolbarCanCollapse : false,
                         toolbar : '<?php echo $toolbarname; ?>',
@@ -47,10 +51,10 @@
                         LimeReplacementFieldsQID : "<?php echo $iQuestionId; ?>",
                         LimeReplacementFieldsType: "<?php echo $sFieldType; ?>",
                         LimeReplacementFieldsAction: "<?php echo $sAction; ?>",
-                        smiley_path: "<?php echo Yii::app()->getConfig('rooturl') . '/upload/images/smiley/msn/'; ?>",
                         LimeReplacementFieldsPath : "<?php echo $this->createUrl("/admin/limereplacementfields/sa/index"); ?>",
                         language : "<?php echo $ckLanguage ?>"
                         <?php echo $htmlformatoption; ?> });
+                }
                 });
 
                 function CKeditor_OnComplete( evt )
@@ -58,7 +62,7 @@
                     var editor = evt.editor;
                     editor.setData(window.opener.document.getElementsByName("<?php echo $sFieldName; ?>")[0].value);
                     editor.execCommand('maximize');
-                    window.status='LimeSurvey <?php $clang->eT('Editing', 'js') . ' ' . 'javascriptEscape(' . $sFieldText . ', true)'; ?>';
+                    window.status='LimeSurvey <?php eT('Editing', 'js') . ' ' . 'javascriptEscape(' . $sFieldText . ', true)'; ?>';
                 }
 
                 function html_transfert()
@@ -94,7 +98,6 @@
                     html_transfert();
 
                     window.opener.document.getElementsByName('<?php echo $sFieldName; ?>')[0].readOnly= false;
-                    window.opener.document.getElementsByName('<?php echo $sFieldName; ?>')[0].className='htmlinput';
                     window.opener.document.getElementById('<?php echo $sControlIdEna; ?>').style.display='';
                     window.opener.document.getElementById('<?php echo $sControlIdDis; ?>').style.display='none';
                     window.opener.focus();

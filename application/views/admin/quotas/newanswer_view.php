@@ -1,43 +1,46 @@
-<div class="header ui-widget-header"><?php $clang->eT("Survey quota");?>: <?php $clang->eT("Add answer");?></div><br />
-<div class="messagebox ui-corner-all" style="width: 600px">
-    <?php echo CHtml::form(array("admin/quotas/sa/new_answer/surveyid/{$iSurveyId}/subaction/new_answer_two"), 'post'); ?>
-        <table class="addquotaanswer">
-            <thead>
-                <tr>
-                    <th class="header ui-widget-header"  colspan="2"><?php echo sprintf($clang->gT("New answer for quota '%s'"), $quota_name);?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="evenrow">
-                    <td align="center">&nbsp;</td>
-                    <td align="center">&nbsp;</td>
-                </tr>
-                <tr class="evenrow">
-                    <td width="30%" align="center" valign="top"><strong><?php $clang->eT("Select question");?>:</strong></td>
-                    <td align="left">
-                        <select name="quota_qid" size="15">
-                            <?php foreach ($newanswer_result as $questionlisting) { ?>
-                                <option value="<?php echo $questionlisting['qid'];?>">
-                                    <?php echo $questionlisting['title'];?>: <?php echo strip_tags(substr($questionlisting['question'],0,40));?>
-                                </option>
-                                <?php } ?>
-                        </select>
-                    </td>
-                </tr>
-                <tr align="left" class="evenrow">
-                    <td colspan="2">&nbsp;</td>
-                </tr>
-                <tr align="left" class="evenrow">
-                    <td>&nbsp;</td>
-                    <td>
-                        <input name="submit" type="submit" class="submit" value="<?php $clang->eT("Next");?>" />
-                        <input type="hidden" name="sid" value="'.$iSurveyId.'" />
+<?php
+/* @var $this AdminController */
+/* @var Quota $oQuota */
+?>
+
+<div class='side-body <?php echo getSideBodyClass(false); ?>'>
+    <div class="row">
+        <div class="col-lg-8 content-right">
+            <h3>
+                <?php eT("Survey quota");?>: <?php eT("Add answer");?>
+            </h3>
+
+
+            <div class="jumbotron message-box">
+                <div class='row'>
+                    <h2><?php echo sprintf(gT("New answer for quota '%s'"), htmlentities($oQuota->name));?></h2>
+                    <p class="lead">
+                        <?php eT("Select question");?>:
+                    </p>
+                    <?php echo CHtml::form(array("admin/quotas/sa/new_answer/surveyid/{$oQuota->sid}/subaction/new_answer_two"), 'post', array('class' => '')); ?>
+                        <div class='form-group'>
+                            <div class='col-sm-5 col-sm-offset-4'>
+                                <select class='form-control' name="quota_qid" size="15">
+                                    <?php foreach ($oQuota->survey->quotableQuestions as $questionlisting) { ?>
+                                        <option value="<?php echo $questionlisting['qid'];?>">
+                                            <?php echo $questionlisting['title'];?>: <?php echo strip_tags(substr($questionlisting->questionl10ns[$sBaseLang]->question,0,40));?>
+                                        </option>
+                                        <?php } ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class='form-group'>
+                            <div class='col-sm-5 col-sm-offset-4'>
+                                <input name="submit" type="submit" class="submit btn btn-default" value="<?php eT("Next");?>" />
+                            </div>
+                        </div>
+                        <input type="hidden" name="sid" value="<?php echo $iSurveyId;?>" />
                         <input type="hidden" name="action" value="quotas" />
                         <input type="hidden" name="subaction" value="new_answer_two" />
-                        <input type="hidden" name="quota_id" value="<?php echo sanitize_int($_POST['quota_id']);?>" />
-                    </td>
-                </tr>
-            </tbody>
-        </table><br />
-    </form>
-	</div>
+                        <input type="hidden" name="quota_id" value="<?php echo sanitize_int($oQuota->id);?>" />
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

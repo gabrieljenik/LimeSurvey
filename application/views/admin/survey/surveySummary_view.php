@@ -1,179 +1,65 @@
-<table <?php echo $showstyle; ?> id='surveydetails'>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Title");?>:</strong>
-        </td>
-        <td class='settingentryhighlight'>
-            <?php echo flattenText($surveyinfo['surveyls_title'])." (".$clang->gT("ID")." ".$surveyinfo['sid'].")";?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php echo $clang->gT("Survey URL") ." - ".getLanguageNameFromCode($surveyinfo['language'],false).":";?></strong>
-        </td>
-        <td>
-        <?php $tmp_url = $this->createAbsoluteUrl("/survey/index/sid/{$surveyinfo['sid']}/lang/{$surveyinfo['language']}"); ?>
-        <a href='<?php echo $tmp_url?>' target='_blank'><?php echo $tmp_url; ?></a>
-        </td>
-    </tr>
-        <?php
-        foreach ($aAdditionalLanguages as $langname)
-        {?>
-        <tr>
-            <td>
-                <strong><?php echo getLanguageNameFromCode($langname,false).":";?></strong>
-            </td>
-            <td>
-            <?php $tmp_url = $this->createAbsoluteUrl("/survey/index/sid/{$surveyinfo['sid']}/lang/{$langname}"); ?>
-            <a href='<?php echo $tmp_url?>' target='_blank'><?php echo $tmp_url; ?></a>
-            </td>
-        </tr>
+<?php
+/**
+ * Survey default view
+ * @var AdminController $this
+ * @var Survey $oSurvey
+ */
+ $count= 0;
 
-        <?php
-        } ?>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Description:");?></strong>
-        </td>
-        <td>
-            <?php
-                if (trim($surveyinfo['surveyls_description']) != '')
-                {
-                    templatereplace(flattenText($surveyinfo['surveyls_description']));
-                    echo LimeExpressionManager::GetLastPrettyPrintExpression();
-                }
-            ?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Welcome:");?></strong>
-        </td>
-        <td>
-            <?php
-                templatereplace(flattenText($surveyinfo['surveyls_welcometext']));
-                echo LimeExpressionManager::GetLastPrettyPrintExpression();
-            ?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("End message:");?></strong>
-        </td>
-        <td>
-            <?php
-                templatereplace(flattenText($surveyinfo['surveyls_endtext']));
-                echo LimeExpressionManager::GetLastPrettyPrintExpression();
-            ?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Administrator:");?></strong>
-        </td>
-        <td>
-            <?php echo flattenText("{$surveyinfo['admin']} ({$surveyinfo['adminemail']})");?>
-        </td>
-    </tr>
-    <?php if (trim($surveyinfo['faxto'])!='') { ?>
-        <tr>
-            <td>
-                <strong><?php $clang->eT("Fax to:");?></strong>
-            </td>
-            <td>
-                <?php echo flattenText($surveyinfo['faxto']);?>
-            </td>
-        </tr>
-    <?php } ?>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Start date/time:");?></strong>
-        </td>
-        <td>
-            <?php echo $startdate;?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Expiry date/time:");?></strong>
-        </td>
-        <td>
-            <?php echo $expdate;?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Template:");?></strong>
-        </td>
-        <td>
-            <?php echo $surveyinfo['template'];?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Base language:");?></strong>
-        </td>
-        <td>
-            <?php echo $language;?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Additional languages:");?></strong>
-        </td>
-            <?php echo $additionnalLanguages;?>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("End URL");?>:</strong>
-        </td>
-        <td>
-            <?php echo $endurl;?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Number of questions/groups");?>:</strong>
-        </td>
-        <td>
-            <?php echo $sumcount3."/".$sumcount2;?>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Survey currently active");?>:</strong>
-        </td>
-        <td>
-            <?php echo $activatedlang;?>
-        </td>
-    </tr>
-    <?php if($activated=="Y") { ?>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Survey table name");?>:</strong>
-        </td>
-        <td>
-            <?php echo $surveydb;?>
-        </td>
-    </tr>
-    <?php } ?>
-    <tr>
-        <td>
-            <strong><?php $clang->eT("Hints");?>:</strong>
-        </td>
-        <td>
-            <?php echo $warnings.$hints;?>
-        </td>
-    </tr>
-    <?php if ($tableusage != false){
-            if ($tableusage['dbtype']=='mysql' || $tableusage['dbtype']=='mysqli'){
-                $column_usage = round($tableusage['column'][0]/$tableusage['column'][1] * 100,2);
-                $size_usage =  round($tableusage['size'][0]/$tableusage['size'][1] * 100,2); ?>
-                <tr><td><strong><?php $clang->eT("Table column usage");?>: </strong></td><td><div class='progressbar' style='width:20%; height:15px;' name='<?php echo $column_usage;?>'></div> </td></tr>
-                <tr><td><strong><?php $clang->eT("Table size usage");?>: </strong></td><td><div class='progressbar' style='width:20%; height:15px;' name='<?php echo $size_usage;?>'></div></td></tr>
-            <?php }
-            elseif (($arrCols['dbtype'] == 'mssql')||($arrCols['dbtype'] == 'postgre')||($arrCols['dbtype'] == 'dblib')){
-                $column_usage = round($tableusage['column'][0]/$tableusage['column'][1] * 100,2); ?>
-                <tr><td><strong><?php $clang->eT("Table column usage");?>: </strong></td><td><strong><?php echo $column_usage;?>%</strong><div class='progressbar' style='width:20%; height:15px;' name='<?php echo $column_usage;?>'></div> </td></tr>
-            <?php }
-        } ?>
-</table>
+// DO NOT REMOVE This is for automated testing to validate we see that page
+echo viewHelper::getViewTestTag('surveySummary');
+
+//TODO : move to controller
+$templates = Template::getTemplateListWithPreviews();
+//print_r($templates);
+$count = 0;
+$surveyid = $oSurvey->sid;
+$templateModel = Template::model()->findByPk($oSurvey->oOptions->template);
+     $surveylocale = Permission::model()->hasSurveyPermission($iSurveyID, 'surveylocale', 'read');
+     // EDIT SURVEY SETTINGS BUTTON
+     $surveysettings = Permission::model()->hasSurveyPermission($iSurveyID, 'surveysettings', 'read');
+     $respstatsread = Permission::model()->hasSurveyPermission($iSurveyID, 'responses', 'read')
+         || Permission::model()->hasSurveyPermission($iSurveyID, 'statistics', 'read')
+         || Permission::model()->hasSurveyPermission($iSurveyID, 'responses', 'export');
+
+
+
+?>
+<!-- START surveySummary -->
+<div class="row">
+    <div class="col-sm-12 h3 pagetitle">
+        <?php eT('Survey summary'); ?> :
+        <?php echo flattenText($oSurvey->currentLanguageSettings->surveyls_title)." (".gT("ID")." ".$oSurvey->sid.")";?>
+    </div>
+</div>
+<?php /*
+/// Survey quick actions have been removed -> deprecated
+<div class="row">
+    <div class="col-sm-12">
+        <?php echo $this->renderPartial('/admin/survey/subview/_survey_quickaction', $subviewData); ?>    
+    </div>
+</div>
+*/ ?>
+<div class="row ls-space margin top-10">
+<?php
+    $possiblePanelFolder = realpath(Yii::app()->getConfig('rootdir').'/application/views/admin/survey/subview/surveydashboard/'); 
+    $possiblePanels = scandir($possiblePanelFolder); 
+    foreach ($possiblePanels as $i => $panel) {
+         
+        // If it's no twig file => ignore 
+        if(!preg_match('/^.*\.twig$/',$panel)){  
+            continue;  
+        } 
+        //every two entries close it up 
+        if($i%2 === 0 ) { ?> 
+            </div> 
+            <div class="row ls-space margin top-10">
+        <?php } ?> 
+        <div class="col-md-12 col-lg-6"> 
+            <?php $surveyTextContent = $oSurvey->currentLanguageSettings->attributes; ?>
+        <?=App()->twigRenderer->renderViewFromFile('/application/views/admin/survey/subview/surveydashboard/'.$panel, get_defined_vars(), true)?>
+        </div> 
+    <?php }
+?> 
+</div>
+<!-- END surveySummary -->

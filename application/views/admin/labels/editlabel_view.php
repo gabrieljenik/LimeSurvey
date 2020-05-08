@@ -1,86 +1,123 @@
-<div class='header'>
-    <input type='image' src='<?php echo $sImageURL; ?>close.png' style='float:right;'
-        onclick="window.open('<?php echo $this->createUrl("admin/labels/sa/view/lid/".$lid); ?>', '_top')" alt='<?php $clang->eT("Close"); ?>'/>
-    <?php if ($action == "newlabelset") { $clang->eT("Create or import new label set(s)");}
-        else {$clang->eT("Edit label set"); } ?>
-</div>
+<?php
+/**
+ * @var $tgis AdminController
+ */
+?>
 
-<div id='tabs'>
-    <ul>
-        <li><a href='#neweditlblset0'><?php echo $tabitem; ?>
-            </a></li>
-        <?php if ($action == "newlabelset"){ ?>
-            <li><a href='#neweditlblset1'><?php $clang->eT("Import label set(s)"); ?></a></li>
-            <?php } ?>
-    </ul>
-    <div id='neweditlblset0'>
-        <?php echo CHtml::form(array("admin/labels/sa/process"), 'post',array('class'=>'form30','id'=>'labelsetform','onsubmit'=>"return isEmpty(document.getElementById('label_name'), '".$clang->gT("Error: You have to enter a name for this label set.","js")."')")); ?>
-            <ul>
-                <li><label for='label_name'><?php $clang->eT("Set name:"); ?></label>
-                    <input type='hidden' name='languageids' id='languageids' value='<?php echo $langids; ?>' />
-                    <input type='text' id='label_name' name='label_name' maxlength='100' size='50' value='<?php if (isset($lbname)) { echo $lbname;} ?>' />
+<script type="text/javascript">
+    var sImageURL = '';
+    var duplicatelabelcode='<?php eT('Error: You are trying to use duplicate label codes.','js'); ?>';
+    var otherisreserved='<?php eT("Error: 'other' is a reserved keyword.",'js'); ?>';
+    var quickaddtitle='<?php eT('Quick-add subquestion or answer items','js'); ?>';
+</script>
+
+<div class="col-lg-12 list-surveys">
+    <h3><?php if ($action == "newlabelset") { eT("Create or import new label set(s)");} else {eT("Edit label set"); } ?></h3>
+    <?=// DO NOT REMOVE This is for automated testing to validate we see that page
+    viewHelper::getViewTestTag('createLabelSets');?>
+
+
+    <div class="row">
+        <div class="col-lg-12 content-right">
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs" id="edit-survey-text-element-language-selection">
+                <li role="presentation" class="active">
+                    <a data-toggle="tab" href='#neweditlblset0'>
+                        <?php echo $tabitem; ?>
+                    </a>
                 </li>
-
-                <li><label><?php $clang->eT("Languages:"); ?></label>
-                    <table><tr><td><select multiple='multiple' style='min-width:220px;' size='5' id='additional_languages' name='additional_languages'>
-                                    <?php foreach ($langidsarray as $langid)
-                                        { ?>
-                                        <option id='<?php echo $langid; ?>' value='<?php echo $langid; ?>'
-                                            ><?php echo getLanguageNameFromCode($langid,false); ?></option>
-                                        <?php } ?>
-
-
-                                </select></td>
-                            <td><input type="button" value="<< <?php $clang->eT("Add"); ?>" onclick="DoAdd()" id="AddBtn" /><br /> <input type="button" value="<?php $clang->eT("Remove"); ?> >>" onclick="DoRemove(1,'<?php $clang->eT("You cannot remove this item since you need at least one language in a labelset.", "js"); ?>')" id="RemoveBtn"  /></td>
-
-
-                            <td><select size='5' style='min-width:220px;' id='available_languages' name='available_languages'>
-                                    <?php foreach (getLanguageDataRestricted(false, Yii::app()->session['adminlang']) as  $langkey=>$langname)
-                                        {
-                                            if (in_array($langkey,$langidsarray)==false)  // base languag must not be shown here
-                                            { ?>
-                                            <option id='<?php echo $langkey; ?>' value='<?php echo $langkey; ?>'
-                                                ><?php echo $langname['description']; ?></option>
-                                            <?php }
-                                    } ?>
-
-                                </select></td>
-                        </tr></table></li></ul>
-            <p><input type='submit' value='<?php if ($action == "newlabelset") {$clang->eT("Save");}
-                    else {$clang->eT("Update");} ?>' />
-            <input type='hidden' name='action' value='<?php if ($action == "newlabelset") {echo "insertlabelset";} else {echo "updateset";} ?>' />
-
-            <?php if ($action == "editlabelset") { ?>
-                <input type='hidden' name='lid' value='<?php echo $lblid; ?>' />
-                <?php } ?>
-
-        </form>
-
-    </div>
-    <?php if ($action == "newlabelset"){ ?>
-        <div id='neweditlblset1'>
-            <?php echo CHtml::form(array("admin/labels/sa/import"), 'post',array('enctype'=>'multipart/form-data','id'=>'importlabels','name'=>"importlabels")); ?>
-                <div class='header ui-widget-header'>
-                    <?php $clang->eT("Import label set(s)"); ?>
-                </div><ul>
-                    <li><label for='the_file'>
-                        <?php $clang->eT("Select label set file (*.lsl,*.csv):"); ?></label>
-                        <input id='the_file' name='the_file' type='file'/>
+                <?php if ($action == "newlabelset" && Permission::model()->hasGlobalPermission('labelsets','import')): ?>
+                    <li>
+                        <a data-toggle="tab"  href='#neweditlblset1'><?php eT("Import label set(s)"); ?></a>
                     </li>
-                    <li><label for='checkforduplicates'>
-                        <?php $clang->eT("Don't import if label set already exists:"); ?></label>
-                        <input name='checkforduplicates' id='checkforduplicates' type='checkbox' checked='checked' />
-                    </li>
-                    <li><label for='translinksfields'>
-                        <?php $clang->eT("Convert resources links?"); ?></label>
-                        <input name='translinksfields' id='translinksfields' type='checkbox' checked='checked' />
-                    </li></ul>
-                <p><input type='submit' value='<?php $clang->eT("Import label set(s)"); ?>' />
-                <input type='hidden' name='action' value='importlabels' />
-            </form></div>
+                <?php endif; ?>
+            </ul>
+
+            <!-- Tabs content -->
+            <div class="tab-content">
+                <div id='neweditlblset0' class="tab-pane fade in active">
+
+                    <!-- Form -->
+                    <?php echo CHtml::form(array("admin/labels/sa/saveNewLabelSet"), 'post',array('class'=>'form form30 ','id'=>'labelsetform','onsubmit'=>"return isEmpty(document.getElementById('label_name'), '".gT("Error: You have to enter a name for this label set.","js")."')")); ?>
 
 
+                            <!-- Set name -->
+                            <div class="form-group col-md-6">
+                                <label  class="control-label" for='label_name'><?php eT("Set name:"); ?></label>
+                                <div class="">
+                                <?php echo CHtml::textField('label_name',isset($lbname)?$lbname:"",array('maxlength'=>100,'size'=>50, 'class' => 'form-control')); ?>
+                                </div>
+                            </div>
 
-    </div>
-    <?php } ?>
+                            <!-- Languages -->
+                            <div class="form-group col-md-6">
+                                <label class=" control-label"><?php eT("Languages:"); ?></label>
+                                <div class=""><?php
+                                $aAllLanguages=getLanguageDataRestricted (false,'short');
+                                if (isset($esrow)) {
+                                    unset($aAllLanguages[$esrow['language']]);
+                                }
+                                Yii::app()->getController()->widget('yiiwheels.widgets.select2.WhSelect2', array(
+                                    'asDropDownList' => true,
+                                    'htmlOptions'=>array('multiple'=>'multiple','style'=>"width: 80%",'required'=>'required'),
+                                    'data' => $aAllLanguages,
+                                    'value' => $langidsarray,
+                                    'name' => 'languageids',
+                                    'pluginOptions' => array(
+                                        'placeholder' => gt('Select languages','unescaped'),
+                                )));
+                                ?>
+                                <input type='hidden' name='oldlanguageids' id='oldlanguageids' value='<?php echo $langids; ?>' />
+                                </div>
+                            </div>
+
+
+                        <p>
+                            <input type='submit' class="hidden" value='<?php if ($action == "newlabelset") {eT("Save");}else {eT("Update");} ?>' />
+                            <input type='hidden' name='action' value='<?php if ($action == "newlabelset") {echo "insertlabelset";} else {echo "updateset";} ?>' />
+
+                            <?php if ($action == "editlabelset") { ?>
+                                <input type='hidden' name='lid' value='<?php echo $lblid; ?>' />
+                            <?php } ?>
+                        </p>
+                    </form>
+                </div>
+
+
+                <!-- Import -->
+                <?php if ($action == "newlabelset" && Permission::model()->hasGlobalPermission('labelsets','import')): ?>
+                    <div id='neweditlblset1' class="tab-pane fade in" >
+                        <?php echo CHtml::form(array("admin/labels/sa/import"), 'post',array('enctype'=>'multipart/form-data', 'class'=>'form','id'=>'importlabels','name'=>"importlabels")); ?>
+                                <div class="form-group">
+                                    <label  class="control-label" for='the_file'>
+                                    <?php echo gT("Select label set file (*.lsl):").'<br>'.sprintf(gT("(Maximum file size: %01.2f MB)"),getMaximumFileUploadSize()/1024/1024); ?>
+                                    </label>
+                                    <input id='the_file' name='the_file' type='file'/>
+                                </div>
+                                <div class="form-group">
+                                    <label  class=" control-label" for='checkforduplicates'>
+                                        <?php eT("Don't import if label set already exists:"); ?>
+                                    </label>
+                                    <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                                        'name' => 'checkforduplicates',
+                                        'id'=>'checkforduplicates',
+                                        'value' => 1,
+                                        'onLabel'=>gT('On'),
+                                        'offLabel' => gT('Off')));
+                                    ?>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="">
+                                        <input type='submit' class='btn btn-default' value='<?php eT("Import label set(s)"); ?>' />
+                                        <input type='hidden' name='action' value='importlabels' />
+                                    </div>
+                                </div>
+                        </form>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
+    </div>
+</div>

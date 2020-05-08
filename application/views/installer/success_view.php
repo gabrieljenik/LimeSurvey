@@ -1,20 +1,15 @@
 <div class="row">
-    <div class="span3">
-        <?php $this->renderPartial('/installer/sidebar_view', compact('progressValue', 'classesForStep', 'clang')); ?>
+    <div class="col-md-3">
+        <?php $this->renderPartial('/installer/sidebar_view', compact('progressValue', 'classesForStep')); ?>
     </div>
-    <div class="span9">
+    <div class="col-md-9">
         <h2><?php echo $title; ?></h2>
-        <p><?php echo $descp; ?></p>
-        <b> <?php $clang->eT("Administrator credentials"); ?>:</b><br /><br />
-        <?php $clang->eT("Username"); ?>: <?php echo $user; ?> <br />
-        <?php $clang->eT("Password"); ?>: <?php echo $pwd; ?>
+        <div class='alert alert-success'><?php echo $descp; ?></div>
+        <legend> <?php eT("Administrator credentials"); ?></legend>
+        <?php eT("Username:"); ?> <?php echo $user; ?> <br />
+        <?php eT("Password:"); ?> <?php echo $pwd; ?>
         <div style="text-align: center">
-            <?php
-                $this->widget('ext.bootstrap.widgets.TbButton', array(
-                    'url' => $this->createUrl("/admin"),
-                    'label' => $clang->gT("Administration")
-                ));
-            ?>
+            <a id="ls-administration" href="<?php echo $this->createUrl("/admin"); ?>" class="btn btn-default btn btn-default-default btn btn-default-lg"><?php eT("Administration")?></a>
         </div>
     </div>
 </div>

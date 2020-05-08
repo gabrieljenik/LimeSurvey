@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(document).on('ready  pjax:scriptcomplete',function() {
     var removeRow = function ()
     {
         // Don't remove last row.
@@ -12,7 +12,7 @@ $(document).ready(function() {
     var addRow = function()
     {
         var baseRow = $(this).closest('tr');
-        // Create new row, hidden and with empty inputs.
+        // Create row, hidden and with empty inputs.
         var newRow = baseRow.clone(true);
         newRow.find('input').each(function() { $(this).val(''); });
 
@@ -40,7 +40,7 @@ $(document).ready(function() {
         newRow.fadeIn();
 
     }
-    $('.settingswidget .settingslist a.remove').bind('click', removeRow);
-    $('.settingswidget .settingslist a.add').bind('click', addRow);
+    $('.settingswidget .setting-list a.remove').on('click',removeRow);
+    $('.settingswidget .setting-list a.add').on('click', addRow);
 
 })

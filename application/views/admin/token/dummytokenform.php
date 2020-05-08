@@ -1,57 +1,167 @@
-<div class='header ui-widget-header'>
-    <?php $clang->eT("Create dummy tokens"); ?>
-</div>
-<?php echo CHtml::form(array("admin/tokens/sa/adddummies/surveyid/{$surveyid}/subaction/add"), 'post', array('id'=>'edittoken', 'name'=>'edittoken', 'class'=>'form30')); ?>
-    <ul>
-        <li><label>ID:</label>
-            <?php $clang->eT("Auto"); ?>
-        </li>
-        <li><label for='amount'><?php $clang->eT("Number of tokens"); ?>:</label>
-            <input type='text' size='20' id='amount' name='amount' value="100" /></li>
-        <li><label for='tokenlen'><?php $clang->eT("Token length"); ?>:</label>
-            <input type='text' size='20' id='tokenlen' name='tokenlen' value="<?php echo $tokenlength; ?>" /></li>
-        <li><label for='firstname'><?php $clang->eT("First name"); ?>:</label>
-            <input type='text' size='30' id='firstname' name='firstname' value="" /></li>
-        <li><label for='lastname'><?php $clang->eT("Last name"); ?>:</label>
-            <input type='text' size='30'  id='lastname' name='lastname' value="" /></li>
-        <li><label for='email'><?php $clang->eT("Email"); ?>:</label>
-            <input type='email' maxlength='320' size='50' id='email' name='email' value="" /></li>
-        <li><label for='language'><?php $clang->eT("Language"); ?>:</label>
-            <?php echo languageDropdownClean($surveyid, Survey::model()->findByPk($surveyid)->language); ?>
-        </li>
-        <li><label for='usesleft'><?php $clang->eT("Uses left:"); ?></label>
-            <input type='text' size='20' id='usesleft' name='usesleft' value="1" /></li>
-        <li><label for='validfrom'><?php $clang->eT("Valid from"); ?>:</label>
-            <input type='text' class='popupdatetime' size='20' id='validfrom' name='validfrom' value="<?php
-                    if (isset($validfrom))
-                    {
-                        $datetimeobj = new Date_Time_Converter($validfrom, "Y-m-d H:i:s");
-                        echo $datetimeobj->convert($dateformatdetails['phpdate'] . ' H:i');
-                    }
-                ?>" /> <label for='validuntil'><?php $clang->eT('until'); ?></label>
-            <input type='text' size='20' id='validuntil' name='validuntil' class='popupdatetime' value="<?php
-                    if (isset($validuntil))
-                    {
-                        $datetimeobj = new Date_Time_Converter($validuntil, "Y-m-d H:i:s");
-                        echo $datetimeobj->convert($dateformatdetails['phpdate'] . ' H:i');
-                    }
-                ?>" /> <span class='annotation'><?php printf($clang->gT('Format: %s'), $dateformatdetails['dateformat'] . ' ' . $clang->gT('hh:mm')); ?></span>
-        </li>
-        <?php
-            // now the attribute fieds
-            foreach ($aAttributeFields as $attr_name => $attr_description)
-            {
+<?php
+/**
+ * Add dummy token
+ */
+?>
+
+<div class='side-body <?php echo getSideBodyClass(false); ?>'>
+    <h3><?php eT("Create dummy participants"); ?></h3>
+
+    <div class="row">
+        <div class="col-lg-12 content-right">
+            <?php echo CHtml::form(array("admin/tokens/sa/adddummies/surveyid/{$surveyid}/subaction/add"), 'post', array('id'=>'edittoken', 'name'=>'edittoken', 'class'=>'form30 ')); ?>
+
+                <!-- ID  -->
+                <div class="form-group">
+                    <label  class=" control-label">ID:</label>
+                    <div class="">
+                        <p class="form-control-static"><?php eT("Auto"); ?></p>
+                    </div>
+                </div>
+
+                <!-- Number of tokens  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='amount'><?php eT("Number of participants:"); ?></label>
+                    <div class="">
+                        <input class='form-control' type='text' size='20' id='amount' name='amount' value="<?php echo $amount; ?>" />
+                    </div>
+                </div>
+
+                <!-- Token length  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='tokenlen'><?php eT("Access code length"); ?>:</label>
+                    <div class="">
+                        <input class='form-control' type='text' size='20' id='tokenlen' name='tokenlen' value="<?php echo $tokenlength; ?>" />
+                    </div>
+                </div>
+
+                <!-- First name  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='firstname'><?php eT("First name"); ?>:</label>
+                    <div class="">
+                        <input class='form-control' type='text' size='30' id='firstname' name='firstname' value="<?php echo $firstname; ?>" />
+                    </div>
+                </div>
+
+                <!-- Last name  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='lastname'><?php eT("Last name"); ?>:</label>
+                    <div class="">
+                        <input class='form-control' type='text' size='30'  id='lastname' name='lastname' value="<?php echo $lastname; ?>" />
+                    </div>
+                </div>
+
+                <!-- Email  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='email'><?php eT("Email address:"); ?></label>
+                    <div class="">
+                        <input class='form-control' type='email' maxlength='320' size='50' id='email' name='email' value="<?php echo $email; ?>" />
+                    </div>
+                </div>
+
+                <!-- Language  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='language'><?php eT("Language"); ?>:</label>
+                    <div class="">
+                        <?php echo languageDropdownClean($surveyid, $language); ?>
+                    </div>
+                </div>
+
+                <!-- Uses left  -->
+                <div class="form-group">
+                    <label  class=" control-label" for='usesleft'><?php eT("Uses left:"); ?></label>
+                    <div class="">
+                        <input class='form-control' type='text' size='20' id='usesleft' name='usesleft' value="<?php echo $usesleft; ?>" />
+                    </div>
+                </div>
+
+            <?php
+                if (isset($validfrom) && $validfrom != 'N')
+                {
+                    $validfrom = convertToGlobalSettingFormat($validfrom, true);
+                }
+
+                if (isset($validuntil) && $validuntil != 'N')
+                {
+                    $validuntil = convertToGlobalSettingFormat($validuntil, true);
+                }
             ?>
-            <li>
-                <label for='<?php echo $attr_name; ?>'><?php echo $attr_description['description'] . ($attr_description['mandatory'] == 'Y' ? '*' : '') ?>:</label>
-                <input type='text' size='55' id='<?php echo $attr_name; ?>' name='<?php echo $attr_name; ?>' value='<?php
-                        if (isset($$attr_name))
-                        {
-                            echo htmlspecialchars($$attr_name, ENT_QUOTES, 'UTF-8');
-                        }
-                    ?>' /></li>
-            <?php } ?>
-    </ul><p>
-        <input type='submit' value='<?php $clang->eT("Add dummy tokens"); ?>' />
-        <input type='hidden' name='sid' value='$surveyid' /></p>
-</form>
+                <!--  Validity -->
+                <div class="form-group">
+                    <label  class=" control-label" for='validfrom'><?php eT("Valid from"); ?>:</label>
+                    <div class=" has-feedback">
+                        <?php Yii::app()->getController()->widget('yiiwheels.widgets.datetimepicker.WhDateTimePicker', array(
+                                'name' => "validfrom",
+                                'value' => isset($validfrom) ? $validfrom : '',
+                                'pluginOptions' => array(
+                                    'format' => $dateformatdetails['jsdate'] . " HH:mm",
+                                    'allowInputToggle' =>true,
+                                    'showClear' => true,
+                                    'tooltips' => array(
+                                        'clear'=> gT('Clear selection'),
+                                        'prevMonth'=> gT('Previous month'),
+                                        'nextMonth'=> gT('Next month'),
+                                        'selectYear'=> gT('Select year'),
+                                        'prevYear'=> gT('Previous year'),
+                                        'nextYear'=> gT('Next year'),
+                                        'selectDecade'=> gT('Select decade'),
+                                        'prevDecade'=> gT('Previous decade'),
+                                        'nextDecade'=> gT('Next decade'),
+                                        'prevCentury'=> gT('Previous century'),
+                                        'nextCentury'=> gT('Next century'),
+                                        'selectTime'=> gT('Select time')
+                                    ),
+                                    'locale' => convertLStoDateTimePickerLocale(Yii::app()->session['adminlang'])
+                                )
+                            ));
+                        ?>
+                        <span class="help-block"><?php printf(gT('Format: %s'), $dateformatdetails['jsdate'] . ' ' . gT('hh:mm')); ?></span>
+                    </div>
+
+                    <label  class=" control-label" for='validuntil'><?php eT('Until:'); ?></label>
+                    <div class=" has-feedback">
+                        <?php Yii::app()->getController()->widget('yiiwheels.widgets.datetimepicker.WhDateTimePicker', array(
+                                'name' => "validuntil",
+                                'value' => isset($validuntil) ? $validuntil : '',
+                                'pluginOptions' => array(
+                                    'format' => $dateformatdetails['jsdate'] . " HH:mm",
+                                    'allowInputToggle' =>true,
+                                    'showClear' => true,
+                                    'tooltips' => array(
+                                        'clear'=> gT('Clear selection'),
+                                        'prevMonth'=> gT('Previous month'),
+                                        'nextMonth'=> gT('Next month'),
+                                        'selectYear'=> gT('Select year'),
+                                        'prevYear'=> gT('Previous year'),
+                                        'nextYear'=> gT('Next year'),
+                                        'selectDecade'=> gT('Select decade'),
+                                        'prevDecade'=> gT('Previous decade'),
+                                        'nextDecade'=> gT('Next decade'),
+                                        'prevCentury'=> gT('Previous century'),
+                                        'nextCentury'=> gT('Next century'),
+                                'selectTime'=> gT('Select time')
+                                    ),
+                                    'locale' => convertLStoDateTimePickerLocale(Yii::app()->session['adminlang'])
+                                )
+                            ));
+                        ?>
+                        <span class="help-block"><?php printf(gT('Format: %s'), $dateformatdetails['jsdate'] . ' ' . gT('hh:mm')); ?></span>
+                    </div>
+                </div>
+
+                <!-- Attribute fields  -->
+                <?php foreach ($aAttributeFields as $attr_name => $attr_description): ?>
+                    <div class="form-group">
+                        <label  class=" control-label" for='<?php echo $attr_name; ?>'><?php echo $attr_description['description'] . ($attr_description['mandatory'] == 'Y' ? '*' : '') ?>:</label>
+                        <div class="">
+                            <input class='form-control' type='text' size='55' id='<?php echo $attr_name; ?>' name='<?php echo $attr_name; ?>' value='<?php if (isset($$attr_name)){echo htmlspecialchars($$attr_name, ENT_QUOTES, 'UTF-8');}?>' />
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+
+                <!--Hidden Buttons (default action) -->
+                <input type='submit' class="hidden" value='1' />
+            </form>
+        </div>
+    </div>
+</div>

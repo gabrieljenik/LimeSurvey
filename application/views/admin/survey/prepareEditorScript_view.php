@@ -1,11 +1,11 @@
-<script type="text/javascript" src="<?php echo Yii::app()->getConfig('sCKEditorURL'); ?>/ckeditor.js"></script>
-<script type='text/javascript'>
-    <!-- 
+<!--<script type="text/javascript" src="<?php echo Yii::app()->getConfig('sCKEditorURL'); ?>/ckeditor.js"></script>-->
+<?php 
+$script = "
     CKEDITOR.on('dialogDefinition', function (ev) {
         var dialogName = ev.data.name;
         var dialogDefinition = ev.data.definition;
-            
-        // Remove upload tab from Link and Image dialog as it interferes with 
+
+        // Remove upload tab from Link and Image dialog as it interferes with
         // CSRF protection and upload can be reached using the browse server tab
         if ( dialogName == 'link')
         {
@@ -17,11 +17,24 @@
            // remove Upload tab
            dialogDefinition.removeContents( 'Upload' );
         }
+    });
+    ";
+
+/**
+* @todo This following three JS lines are a hack to keep the most common usage of <br> in ExpressionScript from breaking the expression,
+* because the HTML editor will insert linebreaks after every <br>, even if it is inside a ExpressionScript tag {}
+* The proper way to fix this would be to merge a plugin like ShowProtected (https://github.com/IGx89/CKEditor-ShowProtected-Plugin) 
+* with LimeReplacementFields and in general use ProtectSource for ExpressionScript
+* See https://stackoverflow.com/questions/2851068/prevent-ckeditor-from-formatting-code-in-source-mode
+*/ 
+$script.="CKEDITOR.on('instanceReady', function(event) {
+        event.editor.dataProcessor.writer.setRules( 'br', { breakAfterOpen: 0 } );
     });    
 
-    var sReplacementFieldTitle = '<?php $clang->eT('LimeSurvey replacement field properties','js');?>';
-    var sReplacementFieldButton = '<?php $clang->eT('Insert/edit LimeSurvey replacement field','js');?>';
+    var sReplacementFieldTitle = '".gT('Placeholder fields','js')."';
+    var sReplacementFieldButton = '".gT('Insert/edit placeholder field','js')."';
     var editorwindowsHash = new Object();
+
     function find_popup_editor(fieldname)
     {
         var window = null;
@@ -42,37 +55,13 @@
         controliddis = fieldname + '_popupctrldis';
         numwindows = editorwindowsHash.length;
         activepopup = find_popup_editor(fieldname);
+
         if (activepopup == null)
         {
             document.getElementsByName(fieldname)[0].readOnly=true;
-            document.getElementsByName(fieldname)[0].className='readonly';
             document.getElementById(controlidena).style.display='none';
             document.getElementById(controliddis).style.display='';
-
-            if (fieldname == '')
-                fieldname='0';
-
-            if (fieldtext == '')
-                fieldtext='0';
-
-            if (fieldtype == '')
-                fieldtype='0';
-
-            if (action == '')
-                action='0';
-
-            if (sid == '')
-                sid='0';
-
-            if (gid == '')
-                gid='0';
-
-            if (qid == '')
-                qid='0';
-
-
-
-            popup = window.open('<?php echo $this->createUrl('admin/htmleditor_pop/sa/index'); ?>/name/'+fieldname+'/text/'+fieldtext+'/type/'+fieldtype+'/action/'+action+'/sid/'+sid+'/gid/'+gid+'/qid/'+qid+'/lang/<?php echo $clang->getlangcode(); ?>','', 'location=no, status=yes, scrollbars=auto, menubar=no, resizable=yes, width=690, height=500');
+            popup = window.open('".$this->createUrl('admin/htmleditor_pop/sa/index')."/name/'+fieldname+'/text/'+fieldtext+'/type/'+fieldtype+'/action/'+action+'/sid/'+sid+'/gid/'+gid+'/qid/'+qid+'/lang/".App()->language."','', 'location=no, status=yes, scrollbars=auto, menubar=no, resizable=yes, width=690, height=500');
 
             editorwindowsHash[fieldname] = popup;
         }
@@ -98,5 +87,6 @@
         }
     }
 
-    -->
-</script>
+";
+
+Yii::app()->getClientScript()->registerScript('ckEditorPreparingSettings', $script, LSYii_ClientScript::POS_BEGIN);

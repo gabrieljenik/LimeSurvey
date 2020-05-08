@@ -1,31 +1,159 @@
-<div id='copy'>
-    <?php echo CHtml::form(array('admin/survey/sa/copy'), 'post', array('id'=>'copysurveyform', 'name'=>'copysurveyform', 'class'=>'form30')); ?>
-        <ul>
-            <li><label for='copysurveylist'><?php $clang->eT("Select survey to copy:"); ?> </label>
-                <select id='copysurveylist' name='copysurveylist' required="required">
-                    <?php echo getSurveyList(false); ?> </select> <span class='annotation'><?php echo $clang->gT("Required"); ?> </span></li>
-            <li><label for='copysurveyname'><?php echo $clang->gT("New survey title:"); ?> </label>
-                <input type='text' id='copysurveyname' size='82' maxlength='200' name='copysurveyname' value='' required="required" />
-                <span class='annotation'><?php echo $clang->gT("Required"); ?> </span></li>
-            <li><label for='copysurveyid'><?php echo $clang->gT("New survey id:"); ?> </label>
-                <input type='text' id='copysurveyid' size='82' maxlength='6' name='copysurveyid' value=''/>
-                <span class='annotation'><?php echo $clang->gT("Optional"); ?> </span></li>
+<?php
+/**
+ * Copy survey
+ */
+?>
+<div class="ls-flex-row wrap align-content-center align-items-center">
+<div class="container-fluid col-sm-10 col-md-8">
+<!-- tab copy survey -->
+    <!-- copy survey form -->
+    <?php echo CHtml::form(array('admin/survey/sa/copy'), 'post', array('id'=>'copysurveyform', 'name'=>'copysurveyform', 'class'=>'form30 ')); ?>
+        <div class="ls-flex-column col-md-6">
+        <!-- Select survey -->
+        <div class="form-group">
+            <label for='copysurveylist' class=" control-label"><?php  eT("Select survey to copy:"); ?> </label>
+            <div class="">
+                <select id='copysurveylist' name='copysurveylist' required="required" class="form-control">
+                    <?php echo getSurveyList(false); ?>
+                </select>
+            </div>
+            <div class="">
+              <p class="form-control-static">
+                <span class='annotation text-warning'><?php echo  gT("Required"); ?> </span>
+              </p>
+            </div>
+        </div>
 
-            <li><label for='copysurveytranslinksfields'><?php echo $clang->gT("Convert resource links and INSERTANS fields?"); ?> </label>
-                <input id='copysurveytranslinksfields' name="copysurveytranslinksfields" type="checkbox" checked='checked'/></li>
-            <li><label for='copysurveyexcludequotas'><?php $clang->eT("Exclude quotas?"); ?></label>
-                <input id='copysurveyexcludequotas' name="copysurveyexcludequotas" type="checkbox" /></li>
-            <li><label for='copysurveyexcludepermissions'><?php echo $clang->gT("Exclude survey permissions?"); ?> </label>
-                <input id='copysurveyexcludepermissions' name="copysurveyexcludepermissions" type="checkbox"/></li>
-            <li><label for='copysurveyexcludeanswers'><?php echo $clang->gT("Exclude answers?"); ?> </label>
-                <input id='copysurveyexcludeanswers' name="copysurveyexcludeanswers" type="checkbox" /></li>
-            <li><label for='copysurveyresetconditions'><?php echo $clang->gT("Reset conditions/relevance?"); ?></label>
-                <input id='copysurveyresetconditions' name="copysurveyresetconditions" type="checkbox" /></li>
-            <li><label for='copysurveyresetstartenddate'><?php echo $clang->gT("Reset start/end date/time?"); ?></label>
-                <input id='copysurveyresetstartenddate' name="copysurveyresetstartenddate" type="checkbox" /></li>
-        </ul>
-        <p><input type='submit' value='<?php $clang->eT("Copy survey"); ?>' />
+        <!-- New survey title -->
+        <div class="form-group">
+            <label for='copysurveyname' class=" control-label"><?php echo  eT("New survey title:"); ?> </label>
+            <div class="">
+                <input type='text' id='copysurveyname' size='82' maxlength='200' name='copysurveyname' value='' required="required" class="form-control" />
+            </div>
+            <div class="">
+              <p class="form-control-static">
+                <span class='annotation text-warning'><?php echo  gT("Required"); ?> </span>
+              </p>
+            </div>
+        </div>
+
+        <!-- New survey id -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyid'><?php echo  eT("New survey id:"); ?> </label>
+            <div class="">
+                <input type='number' step="1" min="1" max="999999" id='copysurveyid' size='82' name='copysurveyid' value='' class="form-control" />
+            </div>
+            <div class="">
+              <p class="form-control-static">
+                <span class='annotation text-info'><?php echo  gT("Optional"); ?> </span>
+              </p>
+            </div>
+        </div>
+        </div>
+         <div class="ls-flex-column col-md-6">
+        <!-- Convert resource links -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveytranslinksfields'><?php echo  eT("Convert resource links and expression fields?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveytranslinksfields',
+                    'value'=> "1",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+
+        <!-- Exclude quotas -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyexcludequotas'><?php echo  eT("Exclude quotas?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveyexcludequotas',
+                    'value'=> "0",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+
+        <!-- Exclude survey permissions -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyexcludepermissions'><?php echo  eT("Exclude survey permissions?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveyexcludepermissions',
+                    'value'=> "0",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+
+        <!-- Exclude answers -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyexcludeanswers'><?php echo  eT("Exclude answers?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveyexcludeanswers',
+                    'value'=> "0",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+
+        <!-- Reset conditions/relevance -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyresetconditions'><?php echo  eT("Reset conditions?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveyresetconditions',
+                    'value'=> "0",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+
+        <!-- Reset start/end date/time -->
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyresetstartenddate'><?php echo  eT("Reset start/end date/time?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveyresetstartenddate',
+                    'value'=> "0",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class=" control-label" for='copysurveyresetresponsestartid'><?php echo  eT("Reset response start ID?"); ?> </label>
+            <div class="">
+                <?php $this->widget('yiiwheels.widgets.switch.WhSwitch', array(
+                    'name' => 'copysurveyresetresponsestartid',
+                    'value'=> "0",
+                    'onLabel'=>gT('On'),
+                    'offLabel'=>gT('Off')
+                    ));
+                ?>
+            </div>
+        </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="text-center">
+            <input type='submit' class='btn btn-primary col-6' value='<?php  eT("Copy survey"); ?>' />
             <?php if (isset($surveyid)) echo '<input type="hidden" name="sid" value="' . $surveyid . '" />'; ?>
-            <input type='hidden' name='action' value='copysurvey' /></p>
+            <input type='hidden' name='action' value='copysurvey' />
+        </div>
     </form>
+</div>
 </div>

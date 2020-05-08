@@ -1,8 +1,15 @@
 <?php
-
-    interface iQuestion {      
+namespace LimeSurvey\PluginManager;
+    interface iQuestion
+    {
         
         
+        /**
+         * @param integer $questionId
+         * @param integer $responseId
+         *
+         * @return void
+         */
         public function __construct(iPlugin $plugin, LimesurveyApi $api, $questionId = null, $responseId = null);
         
         /**
@@ -22,6 +29,7 @@
         
         /**
          * This function derives a unique identifier for identifying a question type.
+         * @return string
          */
         public static function getGUID();
         
@@ -32,9 +40,6 @@
          */
         public function getVariables();
         /**
-         * @param Twig_Environment $twig A reference to configured Twig Environment.
-         * This Twig environment will have a correctly configured translation environment.
-         * This Twig environment will have the plugin view path configured in its loader.
          * @param bool $return If true, return the content instead of outputting it.
          */
         public function render($name, $language, $return = false);
@@ -51,4 +56,3 @@
         
         
     }
-?>

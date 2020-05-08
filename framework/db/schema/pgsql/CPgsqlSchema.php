@@ -25,9 +25,11 @@ class CPgsqlSchema extends CDbSchema
 	 */
 	public $columnTypes=array(
 		'pk' => 'serial NOT NULL PRIMARY KEY',
+		'bigpk' => 'bigserial NOT NULL PRIMARY KEY',
 		'string' => 'character varying (255)',
 		'text' => 'text',
 		'integer' => 'integer',
+		'bigint' => 'bigint',
 		'float' => 'double precision',
 		'decimal' => 'numeric',
 		'datetime' => 'timestamp',
@@ -164,7 +166,7 @@ class CPgsqlSchema extends CDbSchema
 	protected function findColumns($table)
 	{
 		$sql=<<<EOD
-SELECT a.attname, LOWER(format_type(a.atttypid, a.atttypmod)) AS type, d.adsrc, a.attnotnull, a.atthasdef,
+SELECT a.attname, LOWER(format_type(a.atttypid, a.atttypmod)) AS type, pg_get_expr(d.adbin,d.adrelid) as adsrc, a.attnotnull, a.atthasdef,
 	pg_catalog.col_description(a.attrelid, a.attnum) AS comment
 FROM pg_attribute a LEFT JOIN pg_attrdef d ON a.attrelid = d.adrelid AND a.attnum = d.adnum
 WHERE a.attnum > 0 AND NOT a.attisdropped
@@ -229,7 +231,7 @@ SELECT conname, consrc, contype, indkey FROM (
 		CASE WHEN contype='f' THEN
 			pg_catalog.pg_get_constraintdef(oid)
 		ELSE
-			'CHECK (' || consrc || ')'
+			'CHECK (' || pg_get_expr(conbin, conrelid) || ')'
 		END AS consrc,
 		contype,
 		conrelid AS relid,
@@ -391,7 +393,7 @@ EOD;
 		$type=$this->getColumnType($type);
 		$sql='ALTER TABLE ' . $this->quoteTableName($table)
 			. ' ADD COLUMN ' . $this->quoteColumnName($column) . ' '
-			. $this->getColumnType($type);
+			. $type;
 		return $sql;
 	}
 

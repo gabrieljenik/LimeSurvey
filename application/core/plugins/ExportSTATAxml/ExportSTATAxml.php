@@ -1,13 +1,14 @@
 <?php
-class ExportSTATAxml extends PluginBase {
+class ExportSTATAxml extends \LimeSurvey\PluginManager\PluginBase
+{
     
     protected $storage = 'DbStorage';
        
     static protected $description = 'Core: Export survey results to a STATA xml file';
     static protected $name = 'STATA Export';
     
-    public function __construct(PluginManager $manager, $id) {
-        parent::__construct($manager, $id);
+    public function init()
+    {
         
         /**
          * Here you should handle subscribing to the events your plugin will handle
@@ -35,10 +36,18 @@ class ExportSTATAxml extends PluginBase {
         switch ($type) {
             case 'stataxml':
                 $event->set('label', gT("STATA (.xml)"));
-                $event->set('onclick', 'document.getElementById("ansabbrev").checked=true;
-                        document.getElementById("ansfull").disabled=true;document.getElementById("convertyto1").checked=true;document.getElementById("convertnto2").checked=true;
-                        document.getElementById("convertnto").value=0;document.getElementById("convertyto").value=1;
-                        document.getElementById("headcodes").disabled=true;document.getElementById("headabbreviated").disabled=true;document.getElementById("headfull").checked=true;');
+                $event->set('onclick', '
+				 document.getElementById("answers-short").checked=true;
+				 document.getElementById("answers-long").disabled=true;
+                     document.getElementById("converty").checked=true;
+                     document.getElementById("convertn").checked=true;
+                     document.getElementById("convertnto").value=0;
+                     document.getElementById("convertyto").value=1;
+                     document.getElementById("headstyle-code").disabled=true;
+                     document.getElementById("headstyle-abbreviated").disabled=true;
+                     document.getElementById("headstyle-full").checked=true;
+                     document.getElementById("headstyle-codetext").disabled=true;
+				 ');
                 break;
 
             default:
@@ -65,9 +74,8 @@ class ExportSTATAxml extends PluginBase {
     public function newExport()
     {
         $event = $this->getEvent();
-        $type = $event->get('type');
 
-        $pluginsettings=$this->getPluginSettings(true);
+        $pluginsettings = $this->getPluginSettings(true);
         $writer = new STATAxmlWriter($pluginsettings);
         $event->set('writer', $writer);
     }

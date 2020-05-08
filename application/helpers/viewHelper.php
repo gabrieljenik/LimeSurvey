@@ -1,4 +1,6 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php if (!defined('BASEPATH')) {
+    exit('No direct script access allowed');
+}
 /*
 * LimeSurvey
 * Copyright (C) 2007-2013 The LimeSurvey Project Team / Carsten Schmitz
@@ -28,7 +30,7 @@ class viewHelper
      * @param string $linkUrl Url we want to go to, uses CController->createUrl()
      * @param string $linkTxt Text to show for the link
      * @param string $linkTarget Optional target to use for the link
-     * @param string $linkclass Optional class to add to the link
+     * @param string $linkClass Optional class to add to the link
      * @param array  $attribs Optional array of attirbutes to set on the link
      */
     public static function getImageLink($imgName, $linkUrl, $linkTxt, $linkTarget = null, $linkClass = 'imagelink', $attribs = array())
@@ -38,122 +40,186 @@ class viewHelper
         } else {
             $linkUrl = "#";
         }
-        $output = '<a href="' . $linkUrl;
+        $output = '<a href="'.$linkUrl;
         if (!empty($linkClass)) {
-            $output .= '" class="' . $linkClass . '"';
+            $output .= '" class="'.$linkClass.'"';
         }
         if (!empty($linkTarget)) {
-            $output .= ' target="' . $linkTarget . '"';
+            $output .= ' target="'.$linkTarget.'"';
         }
         if (!empty($attribs)) {
-            foreach($attribs as $attrib => $value) {
-                $output .= ' ' . $attrib . '="' . str_replace('"', '&quot;', $value) . '"';
+            foreach ($attribs as $attrib => $value) {
+                $output .= ' '.$attrib.'="'.str_replace('"', '&quot;', $value).'"';
             }
         }
-        $output .= '><img src="' . Yii::app()->getConfig('adminimageurl') . $imgName . '" alt="' . $linkTxt. '" title="' . $linkTxt. '"></a>';
+        $output .= '><img src="'.Yii::app()->getConfig('adminimageurl').$imgName.'" alt="'.$linkTxt.'" title="'.$linkTxt.'"></a>';
 
         return $output;
     }
 
     /**
-     * getFieldText returns complete field information text.
+     * getIconLink returns HTML needed for a link that consists of only an image with alt text.
      *
-     * Usage: getFieldText($field, $option)
+     * Usage: getIconLink('test.png', 'controller/action/params', 'Your description', 'optionalClass', '_blank')
      *
      * @return string
-     * @param array $field the field information from createFieldMap
-     * @param array $option option for filtering
+     * @param string $icoClasses the classes of the icon to generate
+     * @param string $linkUrl Url we want to go to, uses CController->createUrl()
+     * @param string $linkTxt Text to show for the link
+     * @param string $linkTarget Optional target to use for the link
+     * @param string $linkClass Optional class to add to the link
+     * @param array  $attribs Optional array of attirbutes to set on the link
      */
-    public static function getFieldText($field, $option=array())
+    public static function getIconLink($icoClasses, $linkUrl, $linkTxt, $linkTarget = null, $linkClass = 'imagelink', $attribs = array())
+    {
+        if (!is_null($linkUrl) && $linkUrl != '#') {
+            $linkUrl = Yii::app()->getController()->createUrl($linkUrl);
+        } else {
+            $linkUrl = "#";
+        }
+        $output = '<a href="'.$linkUrl;
+        if (!empty($linkClass)) {
+            $output .= '" class="'.$linkClass.'"';
+        }
+        if (!empty($linkTarget)) {
+            $output .= ' target="'.$linkTarget.'"';
+        }
+        if (!empty($attribs)) {
+            foreach ($attribs as $attrib => $value) {
+                $output .= ' '.$attrib.'="'.str_replace('"', '&quot;', $value).'"';
+            }
+        }
+        $output .= '><span class="'.$icoClasses.'"></span></a>';
+
+        return $output;
+    }
+
+
+    /**
+     * getFieldText returns complete field information text.
+     *
+     * Usage: getFieldText($aField, $aOption)
+     *
+     * @return string
+     * @param array $aField the field information from createFieldMap
+     * @param array $aOption option (see default)
+     */
+    public static function getFieldText($aField, $aOption = array())
     {
         // Default options
-        if(!isset($option['flat'])){$option['flat']=true;}
-        //if(!isset($option['separator'])){$option['separator']=array('[',']');}
+        $aDefaultOption = array(
+            'flat'=>true,
+            'separator'=>array('(', ')'),
+            'abbreviated'=>false,
+            'afterquestion'=>" ",
+            'ellipsis'=>'...', // more for export or option, less for HTML display
+            );
+        $aOption = array_merge($aDefaultOption, $aOption);
 
-        if(isset($field['fieldname']))
-        {
-            $questiontext=$field['question'];
-            if(isset($field['scale']) && $field['scale'])
-            {
-                $questiontext.="({$field['scale']})";
+        $sQuestionText = ""; // Allways return a string
+        if (isset($aField['fieldname'])) {
+            $sQuestionText = self::flatEllipsizeText(isset($aField['answertabledefinition']) ? $aField['answertabledefinition'] : $aField['question'], $aOption['flat'], $aOption['abbreviated'], $aOption['ellipsis']);
+            // Did this question have sub question, maybe not needed, think only isset is OK
+            $bHaveSubQuestion = isset($aField['aid']) && $aField['aid'] != "";
+            if($bHaveSubQuestion) {
+                $sQuestionText .= $aOption['afterquestion'];
             }
-            if(isset($field['subquestion']) && $field['subquestion'])
-            {
-                $questiontext.="({$field['subquestion']})";
+            if (isset($aField['subquestion']) && $bHaveSubQuestion) {
+                $sQuestionText .= self::putSeparator(self::flatEllipsizeText($aField['subquestion'], $aOption['flat'], $aOption['abbreviated'], $aOption['ellipsis']), $aOption['separator']);
             }
-            if(isset($field['subquestion1']) && $field['subquestion1'])
-            {
-                $questiontext.="({$field['subquestion1']})";
+            if (isset($aField['subquestion1']) && $bHaveSubQuestion) {
+                $sQuestionText .= self::putSeparator(self::flatEllipsizeText($aField['subquestion1'], $aOption['flat'], $aOption['abbreviated'], $aOption['ellipsis']), $aOption['separator']);
             }
-            if(isset($field['subquestion2']) && $field['subquestion2'])
-            {
-                $questiontext.="({$field['subquestion2']})";
+            if (isset($aField['subquestion2']) && $bHaveSubQuestion) {
+                $sQuestionText .= self::putSeparator(self::flatEllipsizeText($aField['subquestion2'], $aOption['flat'], $aOption['abbreviated'], $aOption['ellipsis']), $aOption['separator']);
+            }
+            if (isset($aField['scale']) && $aField['scale']) {
+                $sQuestionText .= self::putSeparator(self::flatEllipsizeText($aField['scale'], $aOption['flat'], $aOption['abbreviated'], $aOption['ellipsis']), $aOption['separator']); ;
             }
         }
-        else
-        {
-            $questiontext="";
-        }
-        if ($option['flat'])
-        {
-            $questiontext=flattenText($questiontext,false,true);
-        }
-        return $questiontext;
+
+        return $sQuestionText;
     }
 
     /**
      * getFieldCode returns complete field information code.
      *
-     * Usage: getFieldCode($field, $option)
+     * Usage: getFieldCode($aField, $aOption)
      *
      * @return string
-     * @param array $field the field information from createFieldMap
-     * @param array $option option for filtering
+     * @param array $aField the field information from createFieldMap
+     * @param array $aOption option for filtering
      */
-    public static function getFieldCode($field, $option=array())
+    public static function getFieldCode($aField, $aOption = array())
     {
         // Default options
-        if(!isset($option['LEMcompat'])){$option['LEMcompat']=false;}
-        if($option['LEMcompat']){$option['separator']="_";}
-        if(!isset($option['separator'])){$option['separator']=array('[',']');}
+        $aDefaultOption = array(
+            'LEMcompat'=>false,
+            'separator'=>array('[', ']'),
+            );
+        $aOption = array_merge($aDefaultOption, $aOption);
+        if ($aOption['LEMcompat']) {$aOption['separator'] = "_"; }
 
-        if(isset($field['fieldname']))
-        {
-            if(isset($field['title']) && $field['title'])
-            {
-                $questioncode=$field['title'];
-                if(isset($field['aid']) && $field['aid']!="")
-                {
-                    if(is_array($option['separator'])){ // Count ?
-                        $questioncode.=$option['separator'][0].$field['aid'].$option['separator'][1];
-                    }else{ // Test if is string ?
-                        $questioncode.=$option['separator'].$field['aid'];
-                    }
+        $sQuestionCode = "";
+        if (isset($aField['fieldname'])) {
+            if (isset($aField['title']) && $aField['title']) {
+                $sQuestionCode = $aField['title'];
+                if (isset($aField['aid']) && $aField['aid'] != "") {
+                    $sQuestionCode .= self::putSeparator($aField['aid'], $aOption['separator']);
                 }
-                if(isset($field['scale']) && $field['scale'])
-                {
-                    if($option['LEMcompat']){
-                        $scalenum=intval($field['scale_id']);
-                    }else{
-                        $scalenum=intval($field['scale_id'])+1;
+                if (isset($aField['scale']) && $aField['scale']) {
+                    if ($aOption['LEMcompat']) {
+                        $scalenum = intval($aField['scale_id']);
+                    } else {
+                        $scalenum = intval($aField['scale_id']) + 1;
                     }
-                    if(is_array($option['separator'])){ // Count ?
-                        $questioncode.=$option['separator'][0].$scalenum.$option['separator'][1];
-                    }else{ // Test if is string ?
-                        $questioncode.=$option['separator'].$scalenum;
-                    }
+                    $sQuestionCode .= self::putSeparator($scalenum, $aOption['separator']);
                 }
-            }
-            else
-            {
-                $questioncode=$field['fieldname'];
+            } else {
+                $sQuestionCode = $aField['fieldname'];
             }
         }
-        else
-        {
-            $questioncode="";
+
+        return $sQuestionCode;
+    }
+
+    /**
+     * Return a string with the good separator before and after
+     *
+     * @param $sString :the string
+     * @param string|array : the string to put before of the array (before,after)
+     * @return string
+     */
+    public static function putSeparator($sString, $separator)
+    {
+        if (is_array($separator)) {
+            return $separator[0].$sString.$separator[1];
+        } else {
+            return $separator.$sString;
         }
-        return $questioncode;
+    }
+
+    /**
+     * Return a string fixed according to option
+     *
+     * @param string $sString :the string
+     * @param boolean $bFlat : flattenText or not : completely flat (not like flattenText from common_helper)
+     * @param integer $iAbbreviated : max string text (if true : allways flat), 0 or false : don't abbreviated
+     * @param string $sEllipsis if abbreviated : the char to put at end (or middle)
+     * @param integer $fPosition if abbreviated position to split (in % : 0 to 1)
+     *
+     * @return string
+     */
+    public static function flatEllipsizeText($sString, $bFlat = true, $iAbbreviated = 0, $sEllipsis = '...', $fPosition = 1)
+    {
+        if ($bFlat || $iAbbreviated) {
+            $sString = self::flatten($sString);
+        }
+
+        if ($iAbbreviated > 0) {
+            $sString = ellipsize($sString, $iAbbreviated, $fPosition, $sEllipsis);
+        }
+        return $sString;
     }
 
     /**
@@ -164,12 +230,12 @@ class viewHelper
      * @return void
      * @author Menno Dekker
      */
-     public static function disableHtmlLogging(){
-        foreach (App()->log->routes as $route)
-        {
+    public static function disableHtmlLogging()
+    {
+        foreach (App()->log->routes as $route) {
             $route->enabled = $route->enabled && !($route instanceOf CWebLogRoute);
         }
-     }
+    }
 
     /**
      * Deactivate script but show it for debuging
@@ -177,19 +243,92 @@ class viewHelper
      * @todo : filter inline javascript (onclick etc ..., but don't filter EM javascript)
      * Maybe doing it directly in LEM->GetLastPrettyPrintExpression();
      * @param string : Html to filter
+     * @param string $sHtml
      * @return string
      * @author Denis Chenu
      */
-     public static function filterScript($sHtml){
+    public static function filterScript($sHtml)
+    {
         return preg_replace('#<script(.*?)>(.*?)</script>#is', '<pre>&lt;script&gt;${2}&lt;/script&gt;</pre>', $sHtml);
-     }
+    }
+
     /**
      * Show purified html
      * @param string : Html to purify
      * @return string
      */
-     public static function purified($sHtml){
+    public static function purified($sHtml)
+    {
         $oPurifier = new CHtmlPurifier();
         return $oPurifier->purify($sHtml);
-     }
+    }
+
+    /**
+     * return cleaned HTML
+     * @param string : Html to purify
+     * @return string
+     */
+    public static function flatten($sHtml)
+    {
+        $oPurifier = new CHtmlPurifier();
+        $oPurifier->options = array(
+            'HTML.Allowed'=>'',
+            'Output.Newline'=> ' '
+        );
+        return $oPurifier->purify($sHtml);
+    }
+
+    /**
+     * Show clean string, leaving ONLY tag for Expression
+     * @param string : Html to clean
+     * @return string
+     */
+    public static function stripTagsEM($sHtml)
+    {
+        $oPurifier = new CHtmlPurifier();
+        $oPurifier->options = array(
+            'HTML.Allowed'=>'span[title|class],a[class|title|href]',
+            'Attr.AllowedClasses'=>array(
+                'em-expression',
+                'em-haveerror',
+                'em-var-string',
+                'em-function',
+                'em-var-static',
+                'em-var-before',
+                'em-var-after',
+                'em-var-inpage',
+                'em-var-error',
+                'em-assign',
+                'em-error',
+                'em-warning',
+            ),
+            'URI.AllowedSchemes'=>array( // Maybe only local ?
+                'http' => true,
+                'https' => true,
+                )
+        );
+        return $oPurifier->purify($sHtml);
+    }
+
+    
+    /**
+     * NOTE:  A real class helper is needed for twig, so I used this one for now.
+     * TODO: convert surveytranslator to a real helper
+     */
+    public static function getLanguageData($bOrderByNative = false, $sLanguageCode = 'en')
+    {
+        Yii::app()->loadHelper("surveytranslator");
+        return getLanguageData($bOrderByNative, $sLanguageCode);
+    }
+
+    /**
+     * Get a tag to help automated tests identify pages
+     * @param string $name unique view name
+     * @return string
+     */
+    public static function getViewTestTag($name)
+    {
+        return sprintf('<x-test id="action::%s"></x-test>', $name);
+    }
+
 }

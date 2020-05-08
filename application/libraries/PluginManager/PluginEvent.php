@@ -1,5 +1,7 @@
 <?php
-
+namespace LimeSurvey\PluginManager;
+use Yii;
+use Hash;
 Yii::import('application.helpers.Hash');
 
 class PluginEvent
@@ -49,8 +51,7 @@ class PluginEvent
      */
     public function __construct($event, $sender = null)
     {
-        if (!is_null($sender) && is_object($sender))
-        {
+        if (!is_null($sender) && is_object($sender)) {
             $this->_sender = $sender;
         }
         
@@ -71,12 +72,9 @@ class PluginEvent
      */
     public function get($key = null, $default = null)
     {
-        if (!Hash::check($this->_parameters, $key))
-        {
+        if (!Hash::check($this->_parameters, $key)) {
             return $default;
-        }
-        else
-        {
+        } else {
             return Hash::get($this->_parameters, $key);
         }
     }
@@ -89,8 +87,7 @@ class PluginEvent
     public function getAllContent()
     {
         $output = array();
-        foreach($this->_content as $plugin => $content)
-        {
+        foreach ($this->_content as $plugin => $content) {
             /* @var $content PluginEventContent */
             if ($content->hasContent()) {
                 $output[$plugin] = $content; 
@@ -108,7 +105,9 @@ class PluginEvent
      * @param PluginBase|string $plugin The plugin we want content for or a string name
      * @return PluginEventContent
      */
-    public function getContent($plugin) {
+    public function getContent($plugin)
+    {
+        $pluginName = '';
         if (is_string($plugin)) {
             $pluginName = $plugin;
         } elseif ($plugin instanceof PluginBase) {
@@ -170,11 +169,36 @@ class PluginEvent
         $this->_parameters = Hash::insert($this->_parameters, $key, $value);
         return $this;
     }
+
+    /**
+     * Appends a new value into the old.
+     *
+     * $value has to be an array in this case, since it is
+     * assumed that old value was an array. The new and old
+     * array value will be merged.
+     *
+     * @param string $key
+     * @param array $value
+     * @return \PluginEvent Fluent interface
+     */
+    public function append($key, array $value)
+    {
+        if (!Hash::check($this->_parameters, $key)) {
+            $oldValue = array();
+        } else {
+            $oldValue = Hash::get($this->_parameters, $key);
+        }
+
+        $value = array_merge($value, $oldValue);
+
+        $this->_parameters = Hash::insert($this->_parameters, $key, $value);
+        return $this;
+    }
     
     /**
      * Set content for $plugin, replacing any preexisting content
      * 
-     * @param PluginBase|string $plugin The plugin setting the context or a string name
+     * @param string|PluginBase $plugin The plugin setting the context or a string name
      * @param string $content
      * @param string $cssClass
      * @param string $id

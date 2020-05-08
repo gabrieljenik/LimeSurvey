@@ -1,5 +1,7 @@
 <?php
-    interface iPluginStorage {
+namespace LimeSurvey\PluginManager;
+    interface iPluginStorage
+    {
 
         /**
          * Returns plugin data.
@@ -22,7 +24,7 @@
          * @param int $id Id of the model for which the data is retreived
          * @param string $language The optional language to use
          */  
-        public function set (iPlugin $plugin, $key, $data, $model = null, $id = null, $language = null);
+        public function set(iPlugin $plugin, $key, $data, $model = null, $id = null, $language = null);
 
         
         /**

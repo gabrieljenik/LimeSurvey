@@ -1,4 +1,7 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php
+if (!defined('BASEPATH')) {
+    exit('No direct script access allowed');
+}
 /*
 * LimeSurvey
 * Copyright (C) 2007-2011 The LimeSurvey Project Team / Carsten Schmitz
@@ -9,623 +12,610 @@
 * is derivative of works licensed under the GNU General Public License or
 * other free or open source software licenses.
 * See COPYRIGHT.php for copyright notices and details.
+*
+*
 */
 
 /**
-* Update Controller
 *
-* This controller performs updates
+* @package       LimeSurvey
+* @subpackage    Backend
+*/
+
+/**
 *
-* @package		LimeSurvey
-* @subpackage	Backend
+* This controller performs updates, it is highly ajax oriented
+* Methods are only called from JavaScript controller (wich is called from the global_setting view). comfortupdate.js is the first registered script.
+*
+*
+*
+* Public methods are written in a chronological way:
+*   - First, when the user click on the 'check for updates' button, the plugin buildComfortButtons.js call for getstablebutton() or getbothbuttons() method and inject the HTML inside the li#udapteButtonsContainer in the _checkButtons view
+*   - Then, when the user click on one of those buttons, the comfortUpdateNextStep.js plugin will call for the getWelcome() method and inject the HTML inside div#updaterContainer in the _right_container view (all steps will be then injected here)
+*   - Then, when the user click on the continue button, the comfortUpdateNextStep.js plugin will call for the step1() method and inject the  the HTML inside div#updaterContainer in the _right_container view
+*   - etc. etc.
+*
+*
+*
+*  Some steps must be shown out of the chronological process: getNewKey and submitKey. They are at the end of the controller's interface.
+*  Some steps must be 'checked again' after the user fixed some errors (such as file permissions).
+*  Those steps are/can be diplayed by the plugin displayComfortStep.js. They are called from buttons like :
+*
+*  <a class='button' href='<?php Yii::app()->createUrl('admin/globalsettings', array('update'=>'methodToCall', 'neededVariable'=>$value));?>'>
+*    <span class='ui-button-text'>button text</span>
+*  </a>
+*
+* so they will call an url such as : globalsettings?update=methodToCall&neededVariable=value.
+* So the globalsetting controller will render the view as usual, but : the _ajaxVariables view will parse those url datas to some hidden field.
+* The comfortupdate.js check the value of the hidden field update, and if the update's one contain a step, it call displayComfortStep.js wich will display the right step instead of the 'check update' buttons.
+*
+* Most steps are retrieving datas from the comfort update server thanks to the model UpdateForm's methods.
+* The server return an answer object, with a property 'result' to tell if the process was succesfull or if it failed. This object contains in general all the necessary datas for the views.
+*
+*
+* Handling errors :
+* They are different types of possible errors :
+* - Warning message (like : modified files, etc.) : they don't stop the process, they are parsed to the step view, and the view manage how to display them. They can be generated from the ComfortUpdate server ($answer_from_server->result == TRUE ; and something like $answer_from_server->error == message or anything else that the step view manage ), or in the LimeSurvey update controller/model
+* - Error while processing a request on the server part : should never happen, but if something goes wrong in the server side (like generating an object from model), the server returns an error object ($answer_from_server->result == FALSE ; $answer_from_server->error == message )
+*   Those errors stop the process, and are display in _error view. Very usefull to debug. They are parsed directly to $this->_renderError
+* - Error while checking needed datas in the LimeSurvey update controller : the controller always check if it has the needed datas (such as destintion_build, or zip_file), or the state of the key (outdated, etc). For the code to be dryer, the method parse an error string to $this->_renderErrorString($error), wich generate the error object, and then render the error view
+*
+* @package       LimeSurvey
+* @subpackage    Backend
 */
 class update extends Survey_Common_Action
 {
 
     /**
-    * Returns the supported protocol extension (https/http)
-    *
-    */
-    private function getProtocol()
+     * First function to be called, when comming to admin/update
+     *
+     */
+    public function index()
     {
-        if(!function_exists("extension_loaded") || !extension_loaded("openssl"))
-        {
-            return 'http://';
+        if (Yii::app()->getConfig('demoMode')) {
+            Yii::app()->setFlashMessage(gT('This function cannot be executed because demo mode is active.'), 'error');
+            $this->getController()->redirect(Yii::app()->getController()->createUrl("/admin"));
         }
-        return 'https://';
+        $buttons = 1;
+        $updateModel = new UpdateForm();
+        $serverAnswer = $updateModel->getUpdateInfo($buttons);
+        $aData['serverAnswer'] = $serverAnswer;
+        $aData['fullpagebar']['update'] = true;
+        App()->getClientScript()->registerScriptFile(App()->getConfig('adminscripts').'comfortupdate/comfortupdate.js');
+        App()->getClientScript()->registerScriptFile(App()->getConfig('adminscripts').'comfortupdate/buildComfortButtons.js');
+        App()->getClientScript()->registerScriptFile(App()->getConfig('adminscripts').'comfortupdate/displayComfortStep.js');
+
+        $this->_renderWrappedTemplate('update', '_updateContainer', $aData);
     }
-    
+
+    public function managekey()
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            $buttons = 1;
+            $updateModel = new UpdateForm();
+            $serverAnswer = $updateModel->getUpdateInfo($buttons);
+            $aData['serverAnswer'] = $serverAnswer;
+            $aData['fullpagebar']['closebutton']['url'] = 'admin/update';
+            $updateKey = $aData['updateKey'] = getGlobalSetting('update_key');
+
+            //$this->controller->renderPartial('//admin/update/updater/welcome/_subscribe', array('serverAnswer' => $serverAnswer),  false, false);
+            if (!$updateKey) {
+                $aData['fullpagebar']['saveandclosebutton']['form'] = true;
+                $this->_renderWrappedTemplate('update/manage/', 'subscribe', $aData);
+            } else {
+                $aData['updateKeyInfos'] = $updateModel->checkUpdateKeyonServer($updateKey);
+                $this->_renderWrappedTemplate('update/manage/', 'manage_key', $aData);
+            }
+        }
+    }
+
+    public function manage_submitkey()
+    {
+        $buttons = 1;
+        $updateModel = new UpdateForm();
+        $serverAnswer = $updateModel->getUpdateInfo($buttons);
+        $aData['serverAnswer'] = $serverAnswer;
+        $aData['fullpagebar']['closebutton']['url'] = 'admin/update';
+        $aData['updateKey'] = $updateKey = SettingGlobal::model()->findByPk('update_key');
+
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            if (Yii::app()->request->getPost('keyid')) {
+                // We trim it, just in case user added a space...
+                $submittedUpdateKey = trim(Yii::app()->request->getPost('keyid'));
+
+                $updateModel = new UpdateForm();
+                $check = $updateModel->checkUpdateKeyonServer($submittedUpdateKey);
+                if ($check->result) {
+                    // If the key is validated by server, we update the local database with this key
+                    $updateKey = $updateModel->setUpdateKey($submittedUpdateKey);
+                    Yii::app()->session['flashmessage'] = gT("Your key has been updated and validated! You can now use ComfortUpdate.");
+                    // then, we render the what returned the server (views and key infos or error )
+                    App()->getController()->redirect(Yii::app()->getController()->createUrl('admin/update/sa/managekey'));
+                } else {
+                    switch ($check->error) {
+                        case 'out_of_updates':
+                            $title = "Your update key is out of update !";
+                            $message = "you should first renew this key before using it, or try to enter a new one !";
+                            $buttons = 1;
+                            break;
+
+                        case 'expired':
+                            $title = "Your update key has expired!";
+                            $message = "you should first renew this key before using it, or try to enter a new one !";
+                            $buttons = 1;
+                            break;
+
+                        case 'not_found':
+                            $title = "Unknown update key !";
+                            $message = "Your key is unknown by the update server.";
+                            $buttons = 3;
+                            break;
+
+                        case 'key_null':
+                            $title = "key can't be null !";
+                            $message = "";
+                            $buttons = 3;
+                            break;
+                    }
+
+                    App()->setFlashMessage('<strong>'.gT($title).'</strong> '.gT($message), 'error');
+                    App()->getController()->redirect(Yii::app()->getController()->createUrl('admin/update/sa/managekey'));
+                }
+
+            }
+        }
+    }
+
+    public function delete_key()
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            SettingGlobal::model()->deleteByPk('update_key');
+            App()->setFlashMessage('Your update key has been removed');
+            App()->getController()->redirect(Yii::app()->getController()->createUrl('admin/update/sa/managekey'));
+        }
+    }
+
     /**
-    * Default Controller Action
-    */
-    function index($sSubAction = null)
+     * This function return the update buttons for stable branch
+     * @return string html the button code
+     */
+    public function getstablebutton()
     {
-        updateCheck();
-        $this->_RunUpdaterUpdate();
-        Yii::import('application.libraries.admin.http.httpRequestIt');
+        echo $this->_getButtons("1");
+    }
 
-        $clang = $this->getController()->lang;
-        $iCurrentBuildnumber = Yii::app()->getConfig("buildnumber");
-        $tempdir = Yii::app()->getConfig("tempdir");
-        $iDestinationBuild = Yii::app()->request->getParam('build',getGlobalSetting("updatebuild"));
+    /**
+     * This function return the update buttons for all versions
+     * @return string the buttons code
+     */
+    public function getbothbuttons()
+    {
+        echo $this->_getButtons("1");
+    }
 
-        $aUpdateVersions = json_decode(getGlobalSetting("updateversions"),true);
-        foreach($aUpdateVersions as $sBranch=>$aUpdateVersion)
-        {
-            if ($aUpdateVersion['build']==$iDestinationBuild)
-            {
-                setGlobalSetting('updatebuild',$aUpdateVersion['build']);
-                setGlobalSetting('updateversion',$aUpdateVersion['versionnumber']);
+    /**
+     * This function has a special rendering, because the ComfortUpdate server can choose what it's going to show :
+     * the welcome message or the subscribe message or the updater update, etc.
+     * The same system is used for the static views (update key, etc.)
+     *
+     * @return string|null the welcome message
+     */
+    public function getwelcome()
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            // We get the update key in the database. If it's empty, getWelcomeMessage will return subscription
+            $updateKey = getGlobalSetting("update_key");
+            $updateModel = new UpdateForm();
+            $destinationBuild = $_REQUEST['destinationBuild'];
+                $welcome = (array) $updateModel->getWelcomeMessage($updateKey, $destinationBuild);
+                $welcome['destinationBuild'] = $destinationBuild;
+            $welcome = (object) $welcome;
+
+                return $this->_renderWelcome($welcome);
+        }
+    }
+
+    /**
+     * returns the "Checking basic requirements" step
+     * @return string the welcome message
+     */
+    public function checkLocalErrors()
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            // We use request rather than post, because this step can be called by url by displayComfortStep.js
+            if (isset($_REQUEST['destinationBuild'])) {
+                $destinationBuild = $_REQUEST['destinationBuild'];
+                $access_token     = $_REQUEST['access_token'];
+
+                $updateModel = new UpdateForm();
+                $localChecks = $updateModel->getLocalChecks($destinationBuild);
+                $aData['localChecks'] = $localChecks;
+                $aData['changelog'] = null;
+                $aData['destinationBuild'] = $destinationBuild;
+                $aData['access_token'] = $access_token;
+
+                return $this->controller->renderPartial('update/updater/steps/_check_local_errors', $aData, false, false);
             }
-        }
-        
-        $error = false;
-
-        if (!is_writable($tempdir)) {
-            $error = true;
-        }
-        if (!is_writable(APPPATH . 'config/version.php')) {
-            $error = true;
-        }
-
-        list($httperror, $changelog, $cookies) = $this->_getChangelog($iCurrentBuildnumber, $iDestinationBuild);
-
-        $aData['error'] = $error;
-        $aData['tempdir'] = $tempdir;
-        $aData['changelog'] = isset($changelog) ? $changelog : '';
-        $aData['httperror'] = isset($httperror) ? $httperror : '';
-
-        $this->_renderWrappedTemplate('update', 'update', $aData);
-    }
-
-    private function _getChangedFiles($buildnumber, $updaterversion)
-    {
-        Yii::import('application.libraries.admin.http.httpRequestIt');
-        $http = new httpRequestIt;
-        $httperror = $this->_requestChangedFiles($http, $buildnumber, $updaterversion);
-
-        if ($httperror != '') {
-            return array($httperror, null);
-        }
-        return $this->_readChangelog($http);
-    }
-    
-    private function _getChangelog($buildnumber, $updaterversion)
-    {
-        Yii::import('application.libraries.admin.http.httpRequestIt');
-        $http = new httpRequestIt;
-        $httperror = $this->_requestChangelog($http, $buildnumber, $updaterversion);
-
-        if ($httperror != '') {
-            return array($httperror, null);
-        }
-        return $this->_readChangelog($http);
-    }
-
-    private function _readChangelog(httpRequestIt $http)
-    {
-        $szLines = '';
-        $szResponse = '';
-        for (; ;) {
-            $httperror = $http->ReadReplyBody($szLines, 10000);
-            if ($httperror != "" || strlen($szLines) == 0) {
-                $changelog = json_decode($szResponse, true);
-                $http->SaveCookies($cookies);
-                return array($httperror, $changelog, $cookies);
-            }
-            $szResponse .= $szLines;
+            return $this->_renderErrorString("unknown_destination_build");
         }
     }
 
-    private function _requestChangelog(httpRequestIt $http, $buildnumber, $updaterversion)
+    /**
+     * Display change log
+     * @return string
+     */
+    public function changeLog()
     {
-        $http->proxy_host_name = Yii::app()->getConfig("proxy_host_name","");
-        $http->proxy_host_port = Yii::app()->getConfig("proxy_host_port",80);
-        $http->timeout = 0;
-        $http->data_timeout = 0;
-        $http->user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)';
-        $http->GetRequestArguments($this->getProtocol().'update.limesurvey.org/updates/changelog/' . $buildnumber . '/' . $updaterversion , $arguments);
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
 
-        $http->Open($arguments);
+            // We use request rather than post, because this step can be called by url by displayComfortStep.js
+            if (isset($_REQUEST['destinationBuild'])) {
+                $destinationBuild = $_REQUEST['destinationBuild'];
+                $access_token     = $_REQUEST['access_token'];
 
-        return $http->SendRequest($arguments);
-    }
-    
-    private function _requestChangedFiles(httpRequestIt $http, $buildnumber, $updaterversion)
-    {
-        $http->proxy_host_name = Yii::app()->getConfig("proxy_host_name","");
-        $http->proxy_host_port = Yii::app()->getConfig("proxy_host_port",80);
-        $http->timeout = 0;
-        $http->data_timeout = 0;
-        $http->user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)';
-        $http->GetRequestArguments($this->getProtocol().'update.limesurvey.org/updates/update/' . $buildnumber . '/' . $updaterversion , $arguments);
+                // We get the change log from the ComfortUpdate server
+                $updateModel = new UpdateForm();
+                $changelog = $updateModel->getChangeLog($destinationBuild);
 
-        $http->Open($arguments);
-
-        return $http->SendRequest($arguments);
-    }
-    
-    function step2()
-    {
-        $aReadOnlyFiles=array();
-        $clang = $this->getController()->lang;
-        $buildnumber = Yii::app()->getConfig("buildnumber");
-        $updatebuild = getGlobalSetting("updatebuild");
-        list($error, $updateinfo, $cookies) = $this->_getChangedFiles($buildnumber, $updatebuild);
-        $aData = $this->_getFileStatus($updateinfo);
-        if(count($aData['readonlyfiles']))
-        {
-            foreach (array_unique($aData['readonlyfiles']) as $aFile)
-            {
-                $aReadOnlyFiles[]=substr($aFile,strlen(Yii::app()->getConfig("rootdir")));
-            }
-            sort($aReadOnlyFiles);
-            $aData['readonlyfiles']=$aReadOnlyFiles;
-        }
-        Yii::app()->session['updateinfo'] = $updateinfo;
-        Yii::app()->session['updatesession'] = $cookies;
-
-        $aData['error'] = $error;
-        $aData['updateinfo'] = $updateinfo;
-        $this->_renderWrappedTemplate('update', 'step2', $aData);
-    }
-
-    private function _getFileStatus($updateinfo)
-    {
-        // okay, updateinfo now contains all necessary updateinformation
-        // Now check if the existing files have the mentioned checksum
-
-        if (!isset($updateinfo['files'])) {
-            return array();
-        }
-
-        $rootdir = Yii::app()->getConfig("rootdir");
-        $existingfiles = array();
-        $modifiedfiles = array();
-        $readonlyfiles = array();
-
-        foreach ($updateinfo['files'] as $afile)
-        {
-            $this->_checkFile($afile, $rootdir, $readonlyfiles, $existingfiles, $modifiedfiles);
-        }
-        return array('readonlyfiles'=>$readonlyfiles,
-        'modifiedfiles'=>$modifiedfiles,
-        'existingfiles'=>$existingfiles)
-        ;
-    }
-
-    private function _checkFile($file, $rootdir, &$readonlyfiles, &$existingfiles, &$modifiedfiles)
-    {
-        $this->_checkReadOnlyFile($file, $rootdir, $readonlyfiles);
-
-
-        if ($file['type'] == 'A' && file_exists($rootdir . $file['file'])) {
-            //A new file, check if this already exists
-            $existingfiles[] = $file;
-        }
-        elseif (($file['type'] == 'D' || $file['type'] == 'M') && is_file($rootdir . $file['file']) && sha1_file($rootdir . $file['file']) != $file['checksum']) {
-            // A deleted or modified file - check if it is unmodified
-            $modifiedfiles[] = $file;
-        }
-    }
-
-    private function _checkReadOnlyFile($file, $rootdir, &$readonlyfiles)
-    {
-        if ($file['type'] == 'A' && !file_exists($rootdir . $file['file']) || ($file['type'] == 'D' && file_exists($rootdir . $file['file']))) {
-            $searchpath = $rootdir . $file['file'];
-            $is_writable = is_writable(dirname($searchpath));
-            while (!$is_writable && strlen($searchpath) > strlen($rootdir))
-            {
-                $searchpath = dirname($searchpath);
-                if (file_exists($searchpath)) {
-                    $is_writable = is_writable($searchpath);
-                    break;
-
+                if ($changelog->result) {
+                    $aData['errors'] = false;
+                    $aData['changelogs'] = $changelog;
+                    $aData['html_from_server'] = $changelog->html;
+                    $aData['destinationBuild'] = $destinationBuild;
+                    $aData['access_token'] = $access_token;
+                } else {
+                    return $this->_renderError($changelog);
                 }
+                return $this->controller->renderPartial('update/updater/steps/_change_log', $aData, false, false);
             }
-
-            if (!$is_writable) {
-                $readonlyfiles[] = $searchpath;
-            }
-        }
-        elseif (file_exists($rootdir . $file['file']) && !is_writable($rootdir . $file['file'])) {
-            $readonlyfiles[] = $rootdir . $file['file'];
+            return $this->_renderErrorString("unknown_destination_build");
         }
     }
 
-    function step3()
+    /**
+     * diaplay the result of the changed files check
+     *
+     * @return string  HTML
+     */
+    public function fileSystem()
     {
-        $clang = $this->getController()->lang;
-        $buildnumber = Yii::app()->getConfig("buildnumber");
-        $tempdir = Yii::app()->getConfig("tempdir");
-        $updatebuild = getGlobalSetting("updatebuild");
-        //$_POST=$this->input->post();
-        $rootdir = Yii::app()->getConfig("rootdir");
-        $publicdir = Yii::app()->getConfig("publicdir");
-        $tempdir = Yii::app()->getConfig("tempdir");
-        $aDatabasetype = Yii::app()->db->getDriverName();
-        $aData = array('clang' => $clang);
-        // Request the list with changed files from the server
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
 
-        if (!isset( Yii::app()->session['updateinfo']))
-        {
-            if ($updateinfo['error']==1)
-            {
+            if (isset($_REQUEST['destinationBuild'])) {
+                $tobuild = $_REQUEST['destinationBuild'];
+                $access_token = $_REQUEST['access_token'];
+                $frombuild = Yii::app()->getConfig("buildnumber");
+
+                $updateModel = new UpdateForm();
+                $changedFiles = $updateModel->getChangedFiles($tobuild);
+
+                if ($changedFiles->result) {
+                    $aData = $updateModel->getFileStatus($changedFiles->files);
+
+                    $aData['html_from_server'] = (isset($changedFiles->html)) ? $changedFiles->html : '';
+                    $aData['datasupdateinfo'] = $this->_parseToView($changedFiles->files);
+                    $aData['destinationBuild'] = $tobuild;
+                    $aData['updateinfo'] = $changedFiles->files;
+                    $aData['access_token'] = $access_token;
+
+                    return $this->controller->renderPartial('update/updater/steps/_fileSystem', $aData, false, false);
+                }
+                return $this->_renderError($changedFiles);
             }
+            return $this->_renderErrorString("unknown_destination_build");
         }
-        else
-        {
-            $updateinfo=Yii::app()->session['updateinfo'];
-        }
+    }
 
-        $aData['updateinfo'] = $updateinfo;
+    /**
+     * backup files
+     * @return string
+     */
+    public function backup()
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            if (Yii::app()->request->getPost('destinationBuild')) {
+                $destinationBuild = Yii::app()->request->getPost('destinationBuild');
+                $access_token     = $_REQUEST['access_token'];
 
-        // okay, updateinfo now contains all necessary updateinformation
-        // Create DB and file backups now
+                if (Yii::app()->request->getPost('datasupdateinfo')) {
+                    $updateinfos = (array) json_decode(base64_decode(Yii::app()->request->getPost('datasupdateinfo')), true);
 
-        $basefilename = dateShift(date("Y-m-d H:i:s"), "Y-m-d", Yii::app()->getConfig('timeadjust')).'_'.md5(uniqid(rand(), true));
-        //Now create a backup of the files to be delete or modified
+                    $updateModel = new UpdateForm();
+                    $backupInfos = $updateModel->backupFiles($updateinfos);
 
-        $filestozip=array();
+                    if ($backupInfos->result) {
+                        $dbBackupInfos = $updateModel->backupDb($destinationBuild);
+                        // If dbBackup fails, it will just provide a warning message : backup manually
 
-        foreach ($updateinfo['files'] as $file)
-        {
-            if (is_file($publicdir.$file['file'])===true) // Sort out directories
-            {
-                $filestozip[]=$publicdir.$file['file'];
-            }
-        }
+                        $aData['dbBackupInfos'] = $dbBackupInfos;
+                        $aData['basefilename'] = $backupInfos->basefilename;
+                        $aData['tempdir'] = $backupInfos->tempdir;
+                        $aData['datasupdateinfo'] = $this->_parseToView($updateinfos);
+                        $aData['destinationBuild'] = $destinationBuild;
+                        $aData['access_token'] = $access_token;
+                        return $this->controller->renderPartial('update/updater/steps/_backup', $aData, false, false);
 
-        Yii::app()->loadLibrary("admin/pclzip");
-        $archive = new PclZip($tempdir.DIRECTORY_SEPARATOR.'LimeSurvey_files_backup_'.$basefilename.'.zip');
-
-        $v_list = $archive->add($filestozip, PCLZIP_OPT_REMOVE_PATH, $publicdir);
-
-        if ($v_list == 0) {
-            $aFileBackup= array('class'=>'error','text'=>sprintf($clang->gT("Error on file backup: %s"),$archive->errorInfo(true)));
-        }
-        else{
-            $aFileBackup= array('class'=>'success','text'=>sprintf($clang->gT("File backup created: %s"),$tempdir.DIRECTORY_SEPARATOR.'LimeSurvey_files_backup_'.$basefilename.'.zip'));
-        }
-        $aData['aFileBackup']=$aFileBackup;
-
-        $aData['databasetype'] = $aDatabasetype;
-
-        //TODO: Yii provides no function to backup the database. To be done after dumpdb is ported
-        if (in_array($aDatabasetype, array('mysql', 'mysqli')))
-        {
-            if ((in_array($aDatabasetype, array('mysql', 'mysqli'))) && Yii::app()->getConfig('demoMode') != true) {
-                Yii::app()->loadHelper("admin/backupdb");
-                $sfilename = $tempdir.DIRECTORY_SEPARATOR."backup_db_".randomChars(20)."_".dateShift(date("Y-m-d H:i:s"), "Y-m-d", Yii::app()->getConfig('timeadjust')).".sql";
-                $dfilename = $tempdir.DIRECTORY_SEPARATOR."LimeSurvey_database_backup_".$basefilename.".zip";
-
-                outputDatabase('',false,$sfilename);
-                // Before try to zip: test size of file
-                if( is_file($sfilename) && filesize($sfilename))
-                {
-                    $archive = new PclZip($dfilename);
-                    $v_list = $archive->add(array($sfilename), PCLZIP_OPT_REMOVE_PATH, $tempdir,PCLZIP_OPT_ADD_TEMP_FILE_ON);
-                    unlink($sfilename);
-                    if ($v_list == 0) {// Unknow reason because backup of DB work ?
-                        $aSQLBackup=array('class'=>'warning','text'=>$clang->gT("Unable to backup your database for unknow reason. Before proceeding please backup your database using a backup tool!"));
+                    } else {
+                        $error = $backup->error;
                     }
-                    else
-                    {
-                        $aSQLBackup=array('class'=>'success','text'=>sprintf($clang->gT('DB backup created: %s'),htmlspecialchars($dfilename)));
-                    }
+                } else {
+                    $error = "no_updates_infos";
                 }
-                else
-                {
-                    $aSQLBackup=array('class'=>'warning','text'=>$clang->gT("Unable to backup your database for unknow reason. Before proceeding please backup your database using a backup tool!"));
-                }
+            } else {
+                $error = "unknown_destination_build";
             }
+            return $this->_renderErrorString($error);
         }
-        else
-        {
-            $aSQLBackup=array('class'=>'warning','text'=>$clang->gT('Database backup functionality is currently not available for your database type. Before proceeding please backup your database using a backup tool!'));
-        }
-        $aData['aSQLBackup']=$aSQLBackup;
-        if($aFileBackup['class']=="success" && $aSQLBackup['class']=="success") {
-            $aData['result']="success";
-        }elseif($aFileBackup['class']=="error" || $aSQLBackup['class']=="error") {
-            $aData['result']="error";
-        }else{
-            $aData['result']="warning";
-        }
-        $this->_renderWrappedTemplate('update', 'step3', $aData);
     }
 
-
+    /**
+     * Display step4
+     * @return string
+     */
     function step4()
     {
-        $clang = $this->getController()->lang;
-        $buildnumber = Yii::app()->getConfig("buildnumber");
-        $tempdir = Yii::app()->getConfig("tempdir");
-        $updatebuild = getGlobalSetting("updatebuild");
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            if (Yii::app()->request->getPost('destinationBuild')) {
+                $destinationBuild = Yii::app()->request->getPost('destinationBuild');
+                $access_token     = $_REQUEST['access_token'];
 
-        $rootdir = Yii::app()->getConfig("rootdir");
-        $publicdir = Yii::app()->getConfig("publicdir");
-        $tempdir = Yii::app()->getConfig("tempdir");
-        $aDatabasetype = Yii::app()->db->getDriverName();
-        // Request the list with changed files from the server
-        $aData = array();
+                if (Yii::app()->request->getPost('datasupdateinfo')) {
+                    $updateinfos = json_decode(base64_decode(Yii::app()->request->getPost('datasupdateinfo')), true);
 
-        if (!isset( Yii::app()->session['updateinfo']))
-        {
-            if ($updateinfo['error']==1)
-            {
-            }
-        }
-        else
-        {
-            $updateinfo=Yii::app()->session['updateinfo'];
-        }
-        // this is the last step - Download the zip file, unpack it and replace files accordingly
-        // Create DB and file backups now
+                    // this is the last step - Download the zip file, unpack it and replace files accordingly
+                    $updateModel = new UpdateForm();
+                    $file = $updateModel->downloadUpdateFile($access_token, $destinationBuild);
 
-        $downloaderror=false;
-        Yii::import('application.libraries.admin.http.httpRequestIt');
-        $http=new httpRequestIt;
-        
-        $http->proxy_host_name = Yii::app()->getConfig("proxy_host_name","");
-        $http->proxy_host_port = Yii::app()->getConfig("proxy_host_port",80);
+                    if ($file->result) {
+                        $unzip = $updateModel->unzipUpdateFile();
+                        if ($unzip->result) {
+                            $remove = $updateModel->removeDeletedFiles($updateinfos);
+                            if ($remove->result) {
+                                // Should never bug (version.php is checked before))
+                                $updateModel->updateVersion($destinationBuild);
+                                $updateModel->destroyGlobalSettings();
+                                $updateModel->removeTmpFile('update.zip');
+                                $updateModel->removeTmpFile('comfort_updater_cookie.txt');
 
-        // Allow redirects
-        $http->follow_redirect=1;
-        /* Connection timeout */
-        $http->timeout=0;
-        /* Data transfer timeout */
-        $http->data_timeout=0;
-        $http->user_agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)";
-        $http->GetRequestArguments($this->getProtocol()."update.limesurvey.org/updates/download/{$updateinfo['downloadid']}",$arguments);
-        $http->RestoreCookies(Yii::app()->session['updatesession']);
+                                Yii::app()->session['update_result'] = null;
+                                Yii::app()->session['security_update'] = null;
+                                $today = new DateTime("now");
+                                Yii::app()->session['next_update_check'] = $today->add(new DateInterval('PT6H'));
 
-        $error=$http->Open($arguments);
-        $error=$http->SendRequest($arguments);
-        $http->ReadReplyHeaders($headers);
-        if ($headers['content-type']=='text/html')
-        {
-            @unlink($tempdir.'/update.zip');
-        }
-        else if($error=='') {
-                $body='';
-                $pFile = fopen($tempdir.'/update.zip', 'w');
-                for(;;){
-                    $error = $http->ReadReplyBody($body,100000);
-                    if($error != "" || strlen($body)==0) break;
-                    fwrite($pFile, $body);
-            }
-            fclose($pFile);
-        }
-        else
-        {
-            print( $error );
-        }
-
-        //Now unzip the new files over the existing ones.
-        $new_files = false;
-        if (file_exists($tempdir.'/update.zip')){
-            Yii::app()->loadLibrary("admin/pclzip");
-            $archive = new PclZip($tempdir.'/update.zip');
-            if ($archive->extract(PCLZIP_OPT_PATH, $rootdir.'/', PCLZIP_OPT_REPLACE_NEWER)== 0) {
-                die("Error : ".$archive->errorInfo(true));
-            }
-            else
-            {
-                $new_files = true;
-                unlink($tempdir.'/update.zip');
-            }
-        }
-        else
-        {
-            $downloaderror=true;
-        }
-
-        // Now remove all files that are to be deleted according to update process
-        // This happens after unzipping
-        foreach ($updateinfo['files'] as $afile)
-        {
-            if ($afile['type']=='D' && file_exists($rootdir.$afile['file']))
-            {
-                if (is_file($rootdir.$afile['file']))
-                {
-                    @unlink($rootdir.$afile['file']);
+                                // TODO : aData should contains information about each step
+                                return $this->controller->renderPartial('update/updater/steps/_final', array('destinationBuild'=>$destinationBuild), false, false);
+                            } else {
+                                $error = $remove->error;
+                            }
+                        } else {
+                            $error = $unzip->error;
+                        }
+                    } else {
+                        $error = $file->error;
+                    }
+                } else {
+                    $error = "no_updates_infos";
                 }
-                else{
-                    rmdirr($rootdir.$afile['file']);
-                }
+            } else {
+                $error = "unknown_destination_build";
             }
+            return $this->_renderErrorString($error);
         }
-        
-        
-        $aData['new_files'] = $new_files;
-        $aData['downloaderror'] = $downloaderror;
-
-        //  PclTraceDisplay();
-
-        // Now we have to update version.php
-        if (!$downloaderror)
-        {
-            @ini_set('auto_detect_line_endings', true);
-            $versionlines=file($rootdir.'/application/config/version.php');
-            $handle = fopen($rootdir.'/application/config/version.php', "w");
-            foreach ($versionlines as $line)
-            {
-                if(strpos($line,'buildnumber')!==false)
-                {
-                    $line='$config[\'buildnumber\'] = '.Yii::app()->session['updateinfo']['toversion'].';'."\r\n";
-                }
-                fwrite($handle,$line);
-            }
-            fclose($handle);
-        }
-        setGlobalSetting('updateavailable','0');
-        setGlobalSetting('updatebuild','');
-        setGlobalSetting('updateversions','');
-        // We redirect here because the  files might have been overwritten earlier
-        // and classes may have been changed that would be needed in the view
-        Yii::app()->session['installlstep4b']=$aData;
-        Yii::app()->getController()->redirect(array('/admin/update/sa/step4b'));
-    }
-
-    
-    function step4b()
-    {
-        if (!isset(Yii::app()->session['installlstep4b'])) die();
-        $aData=Yii::app()->session['installlstep4b'];
-        unset (Yii::app()->session['installlstep4b']);
-        $this->_renderWrappedTemplate('update', 'step4', $aData);
-    }
-
-    private function _RunUpdaterUpdate()
-    {
-        $clang = $this->getController()->lang;
-        $versionnumber = Yii::app()->getConfig("versionnumber");
-        $buildnumber = Yii::app()->getConfig("buildnumber");
-        $tempdir = Yii::app()->getConfig("tempdir");
-
-        Yii::import('application.libraries.admin.http.httpRequestIt');
-        $oHTTPRequest=new httpRequestIt;
-        
-        $oHTTPRequest->proxy_host_name = Yii::app()->getConfig("proxy_host_name","");
-        $oHTTPRequest->proxy_host_port = Yii::app()->getConfig("proxy_host_port",80);
-
-        /* Connection timeout */
-        $oHTTPRequest->timeout=0;
-        /* Data transfer timeout */
-        $oHTTPRequest->data_timeout=0;
-        $oHTTPRequest->user_agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)";
-        $oHTTPRequest->GetRequestArguments($this->getProtocol()."update.limesurvey.org?updaterbuild={$buildnumber}",$arguments);
-
-        $updateinfo=false;
-        $error=$oHTTPRequest->Open($arguments);
-        $error=$oHTTPRequest->SendRequest($arguments);
-
-        $oHTTPRequest->ReadReplyHeaders($headers);
-
-
-        if($error=="") {
-            $body=''; $full_body='';
-            for(;;){
-                $error = $oHTTPRequest->ReadReplyBody($body,10000);
-                if($error != "" || strlen($body)==0) break;
-                $full_body .= $body;
-            }
-            $updateinfo=json_decode($full_body,true);
-            if ($oHTTPRequest->response_status!='200')
-            {
-                $updateinfo['errorcode']=$oHTTPRequest->response_status;
-                $updateinfo['errorhtml']=$full_body;
-            }
-        }
-        else
-        {
-            $updateinfo['errorcode']=$error;
-            $updateinfo['errorhtml']=$error;
-        }
-        unset( $oHTTPRequest );
-        if ((int)$updateinfo['UpdaterRevision']<=$buildnumber)
-        {
-            // There is no newer updater version on the server
-            return true;
-        }
-
-        if (!is_writable($tempdir) || !is_writable(APPPATH.DIRECTORY_SEPARATOR.'controllers'.DIRECTORY_SEPARATOR.'admin'.DIRECTORY_SEPARATOR.'update.php'))
-        {
-            $error=true;
-        }
-
-        //  Download the zip file, unpack it and replace the updater file accordingly
-        // Create DB and file backups now
-
-        $downloaderror=false;
-        Yii::import('application.libraries.admin.http.httpRequestIt');
-        $oHTTPRequest=new httpRequestIt;
-
-        $oHTTPRequest->proxy_host_name = Yii::app()->getConfig("proxy_host_name","");
-        $oHTTPRequest->proxy_host_port = Yii::app()->getConfig("proxy_host_port",80);
-
-        // Allow redirects
-        $oHTTPRequest->follow_redirect=1;
-        /* Connection timeout */
-        $oHTTPRequest->timeout=0;
-        /* Data transfer timeout */
-        $oHTTPRequest->data_timeout=0;
-        $oHTTPRequest->user_agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)";
-        $oHTTPRequest->GetRequestArguments($this->getProtocol()."update.limesurvey.org/updates/downloadupdater/{$updateinfo['UpdaterRevision']}",$arguments);
-
-        $oHTTPRequesterror=$oHTTPRequest->Open($arguments);
-        $oHTTPRequesterror=$oHTTPRequest->SendRequest($arguments);
-        $oHTTPRequest->ReadReplyHeaders($headers);
-        if ($headers['content-type']=='text/html')
-        {
-            @unlink($tempdir.'/updater.zip');
-        }
-        elseif($oHTTPRequesterror=='') {
-            $body=''; $full_body='';
-            for(;;){
-                $oHTTPRequesterror = $oHTTPRequest->ReadReplyBody($body,100000);
-                if($oHTTPRequesterror != "" || strlen($body)==0) break;
-                $full_body .= $body;
-            }
-            file_put_contents($tempdir.'/updater.zip',$full_body);
-        }
-        $aData['httperror'] = $oHTTPRequesterror;
-
-        //Now unzip the new updater over the existing ones.
-        if (file_exists($tempdir.'/updater.zip')){
-            Yii::app()->loadLibrary("admin/pclzip",array('p_zipname' => $tempdir.'/updater.zip'));
-            $archive = new PclZip(array('p_zipname' => $tempdir.'/updater.zip'));
-            if ($archive->extract(PCLZIP_OPT_PATH, APPPATH.'/controllers/admin/', PCLZIP_OPT_REPLACE_NEWER)== 0) {
-                die("Error : ".$archive->errorInfo(true));
-            }
-            else
-            {
-                unlink($tempdir.'/updater.zip');
-            }
-            $updater_exists = true;
-        }
-        else
-        {
-            $updater_exists = false;
-            $error=true;
-        }
-        $aData['updater_exists'] = $updater_exists;
     }
 
     /**
-    * Update database
-    */
-    function db($continue = null)
+     * This function update the updater
+     * It is called from the view _updater_update.
+     * The view _updater_update is called by the ComfortUpdate server during the getWelcome step if the updater version is not the minimal required one.
+     * @return string the welcome message
+     */
+    public function updateUpdater()
     {
-        $clang = $this->getController()->lang;
-        Yii::app()->loadHelper("update/update");
-        if(isset($continue) && $continue=="yes")
-        {
-            $aViewUrls['output'] = CheckForDBUpgrades($continue);
-            updateCheck();
-            $aData['display']['header'] = false;
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            if (Yii::app()->request->getPost('destinationBuild')) {
+                $destinationBuild = Yii::app()->request->getPost('destinationBuild');
+                $updateModel = new UpdateForm();
+
+                $localChecks = $updateModel->getLocalChecksForUpdater();
+
+                if ($localChecks->result) {
+                    $file = $updateModel->downloadUpdateUpdaterFile($destinationBuild);
+
+                    if ($file->result) {
+                        $unzip = $updateModel->unzipUpdateUpdaterFile();
+                        if ($unzip->result) {
+                            $updateModel->removeTmpFile('update_updater.zip');
+                            $updateModel->removeTmpFile('comfort_updater_cookie.txt');
+                            SettingGlobal::setSetting('updateavailable', '0');
+                            SettingGlobal::setSetting('updatebuild', '');
+                            SettingGlobal::setSetting('updaterversions', '');
+                            Yii::app()->session['update_result'] = null;
+                            Yii::app()->session['next_update_check'] = null;
+                            return $this->controller->renderPartial('update/updater/steps/_updater_updated', array('destinationBuild'=>$destinationBuild), false, false);
+                        } else {
+                            $error = $unzip->error;
+                        }
+                    } else {
+                        $error = $file->error;
+                    }
+                } else {
+                    return $this->controller->renderPartial('update/updater/welcome/_error_files_update_updater', array('localChecks'=>$localChecks), false, false);
+                }
+
+            }
+            return $this->_renderErrorString($error);
         }
-        else
-        {
+    }
+
+    /**
+     * This return the subscribe message
+     * @return string the welcome message
+     */
+    public function getnewkey()
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            // We want to call the server to display the subscribe message
+            // So if needed, we can display a specific html message (like we do for update to LTS with a free key)
+            // To force server to render the subscribe message, we call for the last 2.06+ release (which need at least a free key)
+            $updateModel = new UpdateForm();
+            $welcome = $updateModel->getWelcomeMessage(null, '160129'); //$updateKey
+            echo $this->_renderWelcome($welcome);
+        }
+    }
+
+    /**
+     * This function create or update the LS update key
+     * @return string
+     */
+    public function submitkey()
+    {
+
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            if (Yii::app()->request->getPost('keyid')) {
+                // We trim it, just in case user added a space...
+                $submittedUpdateKey = trim(Yii::app()->request->getPost('keyid'));
+
+                $updateModel = new UpdateForm();
+                $check = $updateModel->checkUpdateKeyonServer($submittedUpdateKey);
+                if ($check->result) {
+                    // If the key is validated by server, we update the local database with this key
+                    $updateKey = $updateModel->setUpdateKey($submittedUpdateKey);
+                    $check = new stdClass();
+                    $check->result = true;
+                    $check->view = "key_updated";
+                }
+                // then, we render the what returned the server (views and key infos or error )
+                echo $this->_renderWelcome($check);
+            } else {
+                return $this->_renderErrorString("key_null");
+            }
+        }
+    }
+
+
+
+    /**
+     * Update database
+     */
+    public function db($continue = null)
+    {
+        Yii::app()->loadHelper("update/update");
+        if (isset($continue) && $continue == "yes") {
+            $aViewUrls['output'] = CheckForDBUpgrades($continue);
+            $aData['display']['header'] = false;
+        } else {
             $aData['display']['header'] = true;
             $aViewUrls['output'] = CheckForDBUpgrades();
         }
+
+        $aData['updatedbaction'] = true;
 
         $this->_renderWrappedTemplate('update', $aViewUrls, $aData);
     }
 
     /**
-    * Renders template(s) wrapped in header and footer
-    *
-    * @param string $sAction Current action, the folder to fetch views from
-    * @param string|array $aViewUrls View url(s)
-    * @param array $aData Data to be passed on. Optional.
-    */
-    protected function _renderWrappedTemplate($sAction = 'update', $aViewUrls = array(), $aData = array())
+     * For updates from the old updater.
+     */
+    public function step4b()
     {
-        $aData['display']['menu_bars'] = false;
-        parent::_renderWrappedTemplate($sAction, $aViewUrls, $aData);
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            if (!isset(Yii::app()->session['installlstep4b'])) {
+                die();
+            }
+            $aData = Yii::app()->session['installlstep4b'];
+            unset (Yii::app()->session['installlstep4b']);
+            $this->_renderWrappedTemplate('update/updater/steps', '_old_step4b', $aData);
+        }
+    }
+
+    /**
+     * This function change the notification state : big alert notification 1, or small one 0
+     * It's called via ajax from view adminmenu
+     */
+    public function notificationstate($state = '0')
+    {
+        Yii::app()->session['notificationstate'] = $state;
+        return '1';
+    }
+    /**
+     * this function render the update buttons
+     * @param string $crosscheck
+     */
+    private function _getButtons($crosscheck)
+    {
+        if (Permission::model()->hasGlobalPermission('superadmin')) {
+            $updateModel = new UpdateForm();
+            $serverAnswer = $updateModel->getUpdateInfo($crosscheck);
+
+            // TODO : if no update available, set session about  it...
+
+            if ($serverAnswer->result) {
+                unset($serverAnswer->result);
+                return $this->controller->renderPartial('//admin/update/check_updates/update_buttons/_updatesavailable', array('updateInfos' => $serverAnswer), false, false);
+            }
+            // Error : we build the error title and messages
+            return $this->controller->renderPartial('//admin/update/check_updates/update_buttons/_updatesavailable_error', array('serverAnswer' => $serverAnswer), false, false);
+        }
+    }
+
+    /**
+     * This method render the welcome/subscribe/key_updated message
+     * @param obj $serverAnswer the answer return by the server
+     */
+    private function _renderWelcome($serverAnswer)
+    {
+        if ($serverAnswer->result) {
+            // Available views (in /admin/update/welcome/ )
+            $views = array('welcome', 'subscribe', 'key_updated', 'updater_update');
+            if (in_array($serverAnswer->view, $views)) {
+                $sValidityDate = '';
+                if (isset($serverAnswer->key_infos->validuntil)) {
+                    $sValidityDate = convertToGlobalSettingFormat($serverAnswer->key_infos->validuntil);
+                }
+                return $this->controller->renderPartial('//admin/update/updater/welcome/_'.$serverAnswer->view, array('serverAnswer' => $serverAnswer, 'sValidityDate'=>$sValidityDate), false, false);
+            } else {
+                $serverAnswer->result = false;
+                $serverAnswer->error = "unknown_view";
+            }
+        }
+        echo $this->_renderError($serverAnswer);
+
+    }
+
+
+    /**
+     * This method renders the error view
+     * @param object $errorObject
+     * @return string
+     */
+    private function _renderError($errorObject)
+    {
+        echo $this->controller->renderPartial('//admin/update/updater/_error', array('errorObject' => $errorObject), false, false);
+    }
+
+    /**
+     * This method convert a string to an error object, and then render the error view
+     * @param string $error the error message
+     * @return string
+     */
+    private function _renderErrorString($error)
+    {
+            $errorObject = new stdClass();
+            $errorObject->result = false;
+            $errorObject->error = $error;
+            return $this->_renderError($errorObject);
+    }
+
+    /**
+     * This function convert the huge updateinfos array to a base64 string, so it can be parsed to the view to be inserted in an hidden input element.
+     *
+     * @param array $updateinfos the udpadte infos array returned by the update server
+     * @return $string
+     */
+    private function _parseToView($updateinfos)
+    {
+        $data = json_encode($updateinfos);
+        return base64_encode($data);
     }
 
 }

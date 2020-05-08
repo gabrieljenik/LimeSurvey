@@ -38,7 +38,7 @@ class Zend_Exception extends Exception
      * @param  string $msg
      * @param  int $code
      * @param  Exception $previous
-     * @return void
+     * @return Exception
      */
     public function __construct($msg = '', $code = 0, Exception $previous = null)
     {
@@ -57,7 +57,7 @@ class Zend_Exception extends Exception
      *
      * @param  string $method
      * @param  array $args
-     * @return mixed
+     * @return null|Exception
      */
     public function __call($method, array $args)
     {
@@ -77,8 +77,8 @@ class Zend_Exception extends Exception
         if (version_compare(PHP_VERSION, '5.3.0', '<')) {
             if (null !== ($e = $this->getPrevious())) {
                 return $e->__toString()
-                       . "\n\nNext "
-                       . parent::__toString();
+                        . "\n\nNext "
+                        . parent::__toString();
             }
         }
         return parent::__toString();

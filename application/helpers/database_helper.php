@@ -1,5 +1,7 @@
 <?php
-if ( !defined('BASEPATH')) exit('No direct script access allowed');
+if (!defined('BASEPATH')) {
+    exit('No direct script access allowed');
+}
 /*
 * LimeSurvey
 * Copyright (C) 2007-2011 The LimeSurvey Project Team / Carsten Schmitz
@@ -14,141 +16,32 @@ if ( !defined('BASEPATH')) exit('No direct script access allowed');
 */
 
 /**
- *
- * @param type $sql
- * @param type $inputarr
- * @param type $silent
- * @return CDbDataReader
- */
-function dbExecuteAssoc($sql,$inputarr=false,$silent=true)
-{
-    $error = '';
-    try {
-        if($inputarr)
-        {
-            $dataset=Yii::app()->db->createCommand($sql)->bindValues($inputarr)->query();	//Checked
-        }
-        else
-        {
-            $dataset=Yii::app()->db->createCommand($sql)->query();
-
-        }
-    } catch(CDbException $e) {
-        $error = $e->getMessage();
-        $dataset=false;
-    }
-
-    if (!$dataset && (Yii::app()->getConfig('debug') >0 || !$silent))
-    {
-        safeDie('Error executing query in dbExecuteAssoc:'.$error);
-    }
-    return $dataset;
-}
-
-
-function dbQueryOrFalse($sql)
-{
-    try {
-        $dataset=Yii::app()->db->createCommand($sql)->query();
-    } catch(CDbException $e) {
-        $dataset=false;
-    }
-    return $dataset;
-}
-
-
-function dbSelectLimitAssoc($sql,$numrows=0,$offset=0,$inputarr=false,$dieonerror=true)
-{
-    $query = Yii::app()->db->createCommand($sql.= " ");
-    if ($numrows)
-    {
-        if ($offset)
-        {
-            $query->limit($numrows, $offset);
-        }
-        else
-        {
-            $query->limit($numrows, 0);
-        }
-    }
-    if($inputarr)
-    {
-        $query->bindValues($inputarr);    //Checked
-    }
-    try
-    {
-        $dataset=$query->query();
-    }
-    catch (CDbException $e)
-    {
-        $dataset=false;
-    }
-    if (!$dataset && $dieonerror) {safeDie('Error executing query in dbSelectLimitAssoc:'.$query->text);}
-    return $dataset;
-}
-
-
-/**
-* This functions quotes fieldnames accordingly
-*
-* @param mixed $id Fieldname to be quoted
-*/
-
-function dbQuoteID($id)
-{
-    switch (Yii::app()->db->getDriverName())
-    {
-        case "mysqli" :
-        case "mysql" :
-            return "`".$id."`";
-            break;
-        case "dblib":
-        case "mssql" :
-        case "sqlsrv" :
-            return "[".$id."]";
-            break;
-        case "pgsql":
-            return "\"".$id."\"";
-            break;
-        default:
-            return $id;
-    }
-}
-
-/**
- * Return the random function to use in ORDER BY sql statements
+ * Return the database-specific random function to use in ORDER BY sql statements
  *
  * @return string
  */
 function dbRandom()
 {
     $driver = Yii::app()->db->getDriverName();
-
-    // Looked up supported db-types in InstallerConfigForm.php
-    // Use below statement to find them
-    //$configForm = new InstallerConfigForm();
-    //$dbTypes    = $configForm->db_names; //Supported types are in this array
-
-    switch ($driver)
-    {
+    switch ($driver) {
         case 'dblib':
         case 'mssql':
         case 'sqlsrv':
-            $srandom='NEWID()';
+            $srandom = 'NEWID()';
             break;
 
         case 'pgsql':
-            $srandom='RANDOM()';
+            $srandom = 'RANDOM()';
             break;
 
         case 'mysql':
         case 'mysqli':
-            $srandom='RAND()';
+            $srandom = 'RAND()';
             break;
 
         default:
             //Some db type that is not mentioned above, could fail and if so should get an entry above.
-            $srandom= 0 + lcg_value()*(abs(1));
+            $srandom = 0 + lcg_value() * (abs(1));
             break;
     }
 
@@ -157,12 +50,13 @@ function dbRandom()
 }
 
 /**
-*  Return a sql statement for finding LIKE named tables
-*  Be aware that you have to escape underscor chars by using a backslash
-* otherwise you might get table names returned you don't want
-*
-* @param mixed $table
-*/
+ *  Return a sql statement for finding LIKE named tables
+ *  Be aware that you have to escape underscore chars by using a backslash
+ * otherwise you might get table names returned you don't want
+ *
+ * @param mixed $table
+ * @return string
+ */
 function dbSelectTablesLike($table)
 {
     switch (Yii::app()->db->getDriverName()) {
@@ -175,7 +69,7 @@ function dbSelectTablesLike($table)
             return "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES where TABLE_TYPE='BASE TABLE' and TABLE_NAME LIKE '$table' ESCAPE '\'";
         case 'pgsql' :
             return "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' and table_name like '$table'";
-        default: safeDie ("Couldn't create 'select tables like' query for connection type '".Yii::app()->db->getDriverName()."'");
+        default: safeDie("Couldn't create 'select tables like' query for connection type '".Yii::app()->db->getDriverName()."'");
     }
 }
 
@@ -188,40 +82,4 @@ function dbSelectTablesLike($table)
 function dbGetTablesLike($table)
 {
     return (array) Yii::app()->db->createCommand(dbSelectTablesLike("{{{$table}}}"))->queryColumn();
-}
-
-/**
-* Creates a table using the YII DB Schema function but properly handles custom field types for the various DB types
-*
-* @param mixed $sTableName
-* @param mixed $aColumns
-* @param mixed $sOptions
-*/
-function createTable($sTableName, $aColumns, $sOptions=null)
-{
-    $sDBDriverName=Yii::app()->db->getDriverName();
-
-    if ($sDBDriverName=='sqlsrv' || $sDBDriverName=='mssql' || $sDBDriverName=='dblib')
-    {
-        foreach ($aColumns as $sName=>&$sType)
-        {
-            $sType=str_replace('text','varchar(max)',$sType);
-            $sType=str_replace('binary','text',$sType);
-            if ($sType=='pk') $sType.=' NOT NULL';
-            if (stripos($sType,'null')===false && stripos($sType,'PRIMARY KEY')===false) $sType.=' NULL';
-        }
-    }
-    if ($sDBDriverName=='pgsql')
-    {
-        foreach ($aColumns as $sName=>&$sType)
-        {
-            $sType=str_replace('varchar','character varying',$sType);
-        }
-    }
-    if (Yii::app()->db->driverName == 'mysql' || Yii::app()->db->driverName == 'mysqli')
-    {
-        if (is_null($sOptions))
-        $sOptions='ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci';
-    }
-    Yii::app()->db->createCommand()->createTable($sTableName,$aColumns,$sOptions);
 }

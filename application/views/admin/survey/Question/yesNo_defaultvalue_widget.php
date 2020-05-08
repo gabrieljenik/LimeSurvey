@@ -36,7 +36,6 @@
             $langopts = $this->widgetOptions['langopts'];
             $language = $this->widgetOptions['language'];
             $defaultValues =  $this->widgetOptions['langopts'][$language][$questionrow['type']][0];
-            $clang = $this->widgetOptions['clang'];
 
             $emfield_css = '';
             $emValue = '';
@@ -55,19 +54,19 @@
             }
             }
 
-            if($questionrow['type'] == 'Y') // do we need this?
+            if($questionrow['type'] == Question::QT_Y_YES_NO_RADIO) // do we need this?
             {
                 $sElement_id = 'defaultanswerscale_0_' . $language;
 
                 $aList = array(
-                    'N'    => $clang->gT('No'),
-                    'Y'    => $clang->gT('YES'),
-                    'EM'   => $clang->gT('EM Value')
+                    'N'    => gT('No','unescaped'),
+                    'Y'    => gT('Yes','unescaped'),
+                    'EM'   => gT('EM value','unescaped')
                 );
 
                 $aHtmlOptions = array(
-                    'empty'    => $clang->gT('<No default value>'),
-                    'class'    => $sElement_id,
+                    'empty'    => gT('<No default value>'),
+                    'class'    => $sElement_id . ' form-control',
                     'onchange' => '// show EM Value Field
                                    if ($(this).val() == "EM"){
                                        $("#"+$(this).closest("select").attr("id")+ "_EM").removeClass("hide");
@@ -75,7 +74,6 @@
                                        $("#"+$(this).closest("select").attr("id")+ "_EM").addClass("hide");} '
                 );
 
-                echo '<li>';
                 echo CHtml::dropDownList($sElement_id, $select, $aList, $aHtmlOptions);
 
                 // textfield preparation
@@ -88,7 +86,6 @@
                         'class' => $sEmfield_css_class,
                         'width' => 100
                     ));
-                echo '</li>';
             }
         }
     }

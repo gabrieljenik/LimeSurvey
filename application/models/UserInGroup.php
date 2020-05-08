@@ -1,4 +1,6 @@
-<?php if ( ! defined('BASEPATH')) die('No direct script access allowed');
+<?php if (!defined('BASEPATH')) {
+    die('No direct script access allowed');
+}
 /*
  * LimeSurvey
  * Copyright (C) 2007-2011 The LimeSurvey Project Team / Carsten Schmitz
@@ -11,110 +13,98 @@
  * See COPYRIGHT.php for copyright notices and details.
  *
  */
-class UserInGroup extends LSActiveRecord {
 
-	/**
-	 * Returns the static model of Settings table
-	 *
-	 * @static
-	 * @access public
-     * @param string $class
-	 * @return CActiveRecord
-	 */
-	public static function model($class = __CLASS__)
-	{
-		return parent::model($class);
-	}
+/**
+ * Class UserInGroup
+ * @property integer $ugid UserGroup ID
+ * @property int $uid User ID
+ *
+ *@property User $users Group ownre user
+ */
+class UserInGroup extends LSActiveRecord
+{
 
-	/**
-	 * Returns the setting's table name to be used by the model
-	 *
-	 * @access public
-	 * @return string
-	 */
-	public function tableName()
-	{
-		return '{{user_in_groups}}';
-	}
-
-	/**
-	 * Returns the primary key of this table
-	 *
-	 * @access public
-	 * @return string
-	 */
-	public function primaryKey()
-	{
-		return 'uid';
-	}
-
-	/**
-     * @return array relational rules.
+    /**
+     * @inheritdoc
+     * @return CActiveRecord
      */
+    public static function model($class = __CLASS__)
+    {
+        return parent::model($class);
+    }
+
+    /** @inheritdoc */
+    public function tableName()
+    {
+        return '{{user_in_groups}}';
+    }
+
+    /** @inheritdoc */
+    public function primaryKey()
+    {
+        return array('ugid', 'uid');
+    }
+
+    /** @inheritdoc */
+    public function rules()
+    {
+        return array(
+            array('uid, ugid', 'required'),
+            array('uid, ugid', 'numerical', 'integerOnly'=>true),
+        );
+
+    }
+
+    /** @inheritdoc */
     public function relations()
     {
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
         return array(
-            'users' => array(self::BELONGS_TO, 'User', '', 'on' => 't.uid = users.uid')
+            // TODO should be singular
+            'users' => array(self::BELONGS_TO, 'User', 'uid'),
+            'group' => array(self::BELONGS_TO, 'UserGroup', 'ugid'),
         );
     }
 
-	public function getAllRecords($condition=FALSE)
+    /**
+     * @param array $data
+     * @return bool
+     * @deprecated at 2018-02-03 use $model->attributes = $data && $model->save()
+     */
+    public function insertRecords($data)
     {
-		$criteria = new CDbCriteria;
-
-        if ($condition != FALSE)
-        {
-		    foreach ($condition as $item => $value)
-			{
-				$criteria->addCondition($item.'='.Yii::app()->db->quoteValue($value));
-			}
-        }
-
-		$data = $this->findAll($criteria);
-
-        return $data;
+        $changedRows = Yii::app()->db->createCommand()->insert($this->tableName(), $data);
+        return (bool) $changedRows;
     }
 
-	function insertRecords($data)
-	{
-		$user = Yii::app()->db->createCommand()->insert($this->tableName(), $data);
-		return (bool) $user;
-	}
+    public function join($fields, $from, $condition = false, $join = false, $order = false)
+    {
+        $user = Yii::app()->db->createCommand();
+        foreach ($fields as $field) {
+            $user->select($field);
+        }
 
-	function join($fields, $from, $condition=FALSE, $join=FALSE, $order=FALSE)
-	{
-	    $user = Yii::app()->db->createCommand();
-		foreach ($fields as $field)
-		{
-			$user->select($field);
-		}
+        $user->from($from);
 
-		$user->from($from);
+        if ($condition != false) {
+            $user->where($condition);
+        }
 
-		if ($condition != FALSE)
-		{
-			$user->where($condition);
-		}
+        if ($order != false) {
+            $user->order($order);
+        }
 
-		if ($order != FALSE)
-		{
-			$user->order($order);
-		}
+        if (isset($join['where'], $join['on'])) {
+            if (isset($join['left'])) {
+                $user->leftjoin($join['where'], $join['on']);
+            } else {
+                $user->join($join['where'], $join['on']);
+            }
+        }
 
-		if (isset($join['where'], $join['on']))
-		{
-		    if (isset($join['left'])) {
-			    $user->leftjoin($join['where'], $join['on']);
-			}else
-			{
-			    $user->join($join['where'], $join['on']);
-			}
-		}
-
-		$data = $user->queryRow();
-		return $data;
-	}
+        $data = $user->queryRow();
+        return $data;
+    }
 
 }
