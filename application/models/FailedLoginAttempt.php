@@ -153,11 +153,9 @@ class FailedLoginAttempt extends LSActiveRecord
         if (empty($whiteList)) {
             return false;
         }
-        if (!is_array($whiteList)) {
-            $whiteList = [$whiteList];
-        }
-        foreach ($whiteList as $whiteListEntry) {
-            if (!empty($whiteListEntry) && preg_match('/' . str_replace('/', '\/', $whiteListEntry) . '/', $ip, $m)) {
+        $whiteListEntries = preg_split('/\n|,/', $whiteList);
+        foreach ($whiteListEntries as $whiteListEntry) {
+            if (!empty($whiteListEntry) && preg_match('/' . str_replace('*', '\d+', $whiteListEntry) . '/', $ip, $m)) {
                 // The IP is whitelisted
                 return true;
             }

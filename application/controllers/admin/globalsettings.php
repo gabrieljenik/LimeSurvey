@@ -249,6 +249,11 @@ class GlobalSettings extends Survey_Common_Action
             SettingGlobal::setSetting('force_ssl', Yii::app()->getRequest()->getPost('force_ssl'));
         }
 
+        $loginIpWhitelist = $this->getValidIpAddresses(Yii::app()->getRequest()->getPost('loginIpWhitelist'));
+        SettingGlobal::setSetting('loginIpWhitelist', $loginIpWhitelist);
+        $tokenIpWhitelist = $this->getValidIpAddresses(Yii::app()->getRequest()->getPost('tokenIpWhitelist'));
+        SettingGlobal::setSetting('tokenIpWhitelist', $tokenIpWhitelist);
+
         // we set the admin theme
         $sAdmintheme = sanitize_paranoid_string(Yii::app()->getRequest()->getPost('admintheme'));
         SettingGlobal::setSetting('admintheme', $sAdmintheme);
@@ -399,5 +404,25 @@ class GlobalSettings extends Survey_Common_Action
     {
         App()->getClientScript()->registerScriptFile(App()->getConfig('adminscripts').'globalsettings.js');
         parent::_renderWrappedTemplate($sAction, $aViewUrls, $aData, $sRenderFile);
+    }
+
+    /**
+     * Returns a list of validated IP addresses
+     *
+     * @param string $ipList list of IP addresses to validate, separated by comma or new line
+     *
+     * @return string list of valid IP addresses, separated by comma
+     */
+    protected function getValidIpAddresses($ipList)
+    {
+        $inputAddresses = preg_split('/\n|,/', $ipList);
+        $validAddresses = [];
+        foreach ($inputAddresses as $inputAddress) {
+            $inputAddress = trim($inputAddress);
+            if (check_ip_address($inputAddress)) {
+                $validAddresses[] = $inputAddress;
+            }
+        }
+        return implode(",", $validAddresses);
     }
 }
