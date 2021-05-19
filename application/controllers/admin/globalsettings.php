@@ -249,10 +249,17 @@ class GlobalSettings extends Survey_Common_Action
             SettingGlobal::setSetting('force_ssl', Yii::app()->getRequest()->getPost('force_ssl'));
         }
 
-        $loginIpWhitelist = $this->getValidIpAddresses(Yii::app()->getRequest()->getPost('loginIpWhitelist'));
-        SettingGlobal::setSetting('loginIpWhitelist', $loginIpWhitelist);
-        $tokenIpWhitelist = $this->getValidIpAddresses(Yii::app()->getRequest()->getPost('tokenIpWhitelist'));
-        SettingGlobal::setSetting('tokenIpWhitelist', $tokenIpWhitelist);
+        $warning = '';
+        $validatedLoginIpWhitelistInput = $this->validateIpAddresses(Yii::app()->getRequest()->getPost('loginIpWhitelist'));
+        SettingGlobal::setSetting('loginIpWhitelist', $validatedLoginIpWhitelistInput['valid']);
+        if (!empty($validatedLoginIpWhitelistInput['invalid'])) {
+            $warning .= sprintf(gT("Warning! Invalid IP addresses have been excluded from '%s' setting."), gT("IP whitelist for login")).'<br/>';
+        }
+        $validatedTokenIpWhitelistInput = $this->validateIpAddresses(Yii::app()->getRequest()->getPost('tokenIpWhitelist'));
+        SettingGlobal::setSetting('tokenIpWhitelist', $validatedTokenIpWhitelistInput['valid']);
+        if (!empty($validatedTokenIpWhitelistInput['invalid'])) {
+            $warning .= sprintf(gT("Warning! Invalid IP addresses have been excluded from '%s' setting."), gT("IP whitelist for token access")).'<br/>';
+        }
 
         // we set the admin theme
         $sAdmintheme = sanitize_paranoid_string(Yii::app()->getRequest()->getPost('admintheme'));
@@ -276,7 +283,6 @@ class GlobalSettings extends Survey_Common_Action
         SettingGlobal::setSetting('emailsmtpdebug', sanitize_int(Yii::app()->request->getPost('emailsmtpdebug', '0')));
         SettingGlobal::setSetting('emailsmtpuser', strip_tags(returnGlobal('emailsmtpuser')));
         SettingGlobal::setSetting('filterxsshtml', strip_tags(Yii::app()->getRequest()->getPost('filterxsshtml')));
-        $warning = '';
         // make sure emails are valid before saving them
         if (Yii::app()->request->getPost('siteadminbounce', '') == ''
             || validateEmailAddress(Yii::app()->request->getPost('siteadminbounce'))) {
@@ -407,22 +413,29 @@ class GlobalSettings extends Survey_Common_Action
     }
 
     /**
-     * Returns a list of validated IP addresses
+     * Splits list of IP addresses into lists of valid and invalid addresses
      *
      * @param string $ipList list of IP addresses to validate, separated by comma or new line
      *
-     * @return string list of valid IP addresses, separated by comma
+     * @return array<string,string> an array of the form ['valid' => validlist, 'invalid' => invalidlist]
+     *                              where each list is a comma separated string.
      */
-    protected function getValidIpAddresses($ipList)
+    protected function validateIpAddresses($ipList)
     {
         $inputAddresses = preg_split('/\n|,/', $ipList);
         $validAddresses = [];
+        $invalidAddresses = [];
         foreach ($inputAddresses as $inputAddress) {
             $inputAddress = trim($inputAddress);
             if (check_ip_address($inputAddress)) {
                 $validAddresses[] = $inputAddress;
+            } else {
+                $invalidAddresses[] = $inputAddress;
             }
         }
-        return implode(",", $validAddresses);
+        return [
+            'valid' => implode(",", $validAddresses),
+            'invalid' => implode(",", $invalidAddresses)
+        ];
     }
 }
