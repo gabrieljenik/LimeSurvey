@@ -75,7 +75,7 @@ class FailedLoginAttempt extends LSActiveRecord
         $ip = substr(App()->getRequest()->getUserHostAddress(), 0, 40);
 
         // Return false if IP is whitelisted
-        if ($this->isWhitelisted($ip, $attemptType)) {
+        if (!empty($attemptType) && $this->isWhitelisted($ip, $attemptType)) {
             return false;
         }
 
@@ -141,12 +141,13 @@ class FailedLoginAttempt extends LSActiveRecord
      * @param string $ip
      * @param string $attemptType   'login' or 'token'
      *
+     * @throws InvalidArgumentException if an invalid attempt type is specified
      * @return boolean
      */
     private function isWhitelisted($ip, $attemptType)
     {
         if ($attemptType != self::TYPE_LOGIN && $attemptType != self::TYPE_TOKEN) {
-            return false;
+            throw new InvalidArgumentException(sprintf("Invalid attempt type: %s", $attemptType));
         }
 
         $whiteList = Yii::app()->getConfig($attemptType . 'IpWhitelist');
