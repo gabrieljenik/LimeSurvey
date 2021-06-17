@@ -2,7 +2,6 @@
 
 /** @var Survey $oSurvey */
 /** @var Question $oQuestion */
-/** @var string $questionTemplate */
 ?>
 
 <style>
@@ -65,7 +64,6 @@
                         <div class="row">
                             <!-- Question code -->
                             <?php
-                            $questionTheme = QuestionTheme::findQuestionMetaData($oQuestion->type, $questionTemplate);
                             $this->renderPartial(
                                 "questionCode",
                                 ['question' => $oQuestion]
@@ -80,10 +78,7 @@
                         <!-- Question type selector -->
                         <div class="row">
                             <?php
-                            $questionTheme = QuestionTheme::findQuestionMetaData($oQuestion->type, $questionTemplate);
-                            if (empty($questionTheme['extends'])) {
-                                $questionTheme['name'] = 'core';    // Temporary solution for the issue 17346
-                            }
+                            $questionTheme = QuestionTheme::findQuestionMetaData($oQuestion->type, $oQuestion->question_theme_name);
                             $this->renderPartial(
                                 "typeSelector",
                                 [
