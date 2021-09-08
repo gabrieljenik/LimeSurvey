@@ -929,7 +929,7 @@ $(document).on('ready pjax:scriptcomplete', function () {
     // TODO: Doc answers
     const answers = {};
     const lsrows = $('#quickaddarea').val().split('\n');
-    const allrows = $closestTable.find('tr').length;
+    const allrows = $closestTable.find('tbody tr').length;
     const separatorchar = getSeparatorChar(lsrows);
 
     let numericSuffix = '';
@@ -958,11 +958,12 @@ $(document).on('ready pjax:scriptcomplete', function () {
       const thisrow = value.splitCSV(separatorchar);
 
       if (thisrow.length <= languages.length) {
-        let qCode = (parseInt(k) + 1).toString();
+        let numericCode = (parseInt(k) + 1);
         if (lsreplace === false) {
-          qCode += (parseInt(allrows));
+          numericCode += (parseInt(allrows));
         }
-        while (qCode.toString().length < numericSuffix.length) {
+        let qCode = numericCode.toString();
+        while (qCode.length < numericSuffix.length) {
           qCode = `0${qCode}`;
         }
         thisrow.unshift(codeSigil.join('') + qCode);
