@@ -966,7 +966,8 @@ $(document).on('ready pjax:scriptcomplete', function () {
         while (qCode.length < numericSuffix.length) {
           qCode = `0${qCode}`;
         }
-        thisrow.unshift(codeSigil.join('') + qCode);
+        let prefix = codeSigil.slice(0, Math.max(0, 5 - qCode.length)).join('');
+        thisrow.unshift(prefix + qCode);
       } else {
         thisrow[0] = thisrow[0].replace(/[^A-Za-z0-9]/g, '').substr(0, 20);
       }
