@@ -1673,7 +1673,12 @@ class remotecontrol_handle
                             $aResult[$sPropertyName] = 'No available answers';
                         }
                     } elseif ($sPropertyName == 'attributes') {
-                        $oAttributes = QuestionAttribute::model()->findAllByAttributes(array('qid' => $iQuestionID, 'language' => null), array('order' => 'attribute'));
+                        $criteria = new CDbCriteria();
+                        $criteria->addCondition("qid = :qid");
+                        $criteria->addCondition("language IS NULL OR language = ''");
+                        $criteria->params[':qid'] = $iQuestionID;
+                        $criteria->order = "attribute";
+                        $oAttributes = QuestionAttribute::model()->findAll($criteria);
                         if (count($oAttributes) > 0) {
                             $aData = array();
                             foreach ($oAttributes as $oAttribute) {
