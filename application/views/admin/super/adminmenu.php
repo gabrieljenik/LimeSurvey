@@ -11,7 +11,7 @@
 <nav class="navbar">
   <div class="navbar-header">
       <button class="navbar-toggle hidden-md hidden-lg" type="button" data-toggle="collapse" data-target="#small-screens-menus">
-            <span class="sr-only">Toggle navigation</span>
+            <span class="sr-only"><?= gT('Toggle navigation') ?></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>

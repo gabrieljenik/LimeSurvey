@@ -21,8 +21,8 @@
 {% if(aSurveyInfo.class.navbar) %}
 <div class="{{ aSurveyInfo.class.navbar }} navbar-fixed-top" {{ aSurveyInfo.attr.navbar }}>
     <div class="{{ aSurveyInfo.class.navbarheader }}  " {{ aSurveyInfo.attr.navbarheader }} >
-        <button type="button" class="{{ aSurveyInfo.class.navbartoggle }}" {{ aSurveyInfo.attr.navbartoggle }}  >
-            <span class="sr-only">Toggle navigation</span>
+        <button type="button" class="{{ aSurveyInfo.class.navbartoggle }}" {{ aSurveyInfo.attr.navbartoggle }} aria-hidden="true" title="{{ gT('Toggle navigation') }}">
+            <span class="sr-only">{{ gT('Toggle navigation') }}</span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
