@@ -256,4 +256,29 @@ class TestBaseClass extends TestCase
         }
         return $results;
     }
+
+    /**
+     * @param string $pluginName
+     * @return iPlugin
+     */
+    protected static function loadTestPlugin($pluginName)
+    {
+        require_once self::$dataFolder . "/plugins/{$pluginName}.php";
+        $plugin = \Plugin::model()->findByAttributes(['name' => $pluginName]);
+        if (!$plugin) {
+            $plugin = new \Plugin();
+            $plugin->name = $pluginName;
+            $plugin->active = 1;
+            $plugin->save();
+        } else {
+            $plugin->active = 1;
+            $plugin->save();
+        }
+
+        $plugin = App()->getPluginManager()->loadPlugin($pluginName, $plugin->id);
+        if (is_null($plugin)) {
+            throw new Exception(sprintf('Failed to load test plugin %s', $pluginName));
+        }
+        return $plugin;
+    }
 }
